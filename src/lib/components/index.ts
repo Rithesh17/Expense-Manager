@@ -21,3 +21,6 @@ export { default as Icon } from './Icon.svelte';
 
 // User Menu
 export { default as UserMenu } from './UserMenu.svelte';
+
+// App Footer
+export { default as AppFooter } from './AppFooter.svelte';

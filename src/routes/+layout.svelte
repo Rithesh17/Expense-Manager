@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { NavigationBar, Footer } from 'statue-ssg';
+	import { NavigationBar } from 'statue-ssg';
 	import { page } from '$app/stores';
 	import { onNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import '$lib/index.css';
-	import { BottomNav, UserMenu } from '$lib/components';
+	import { BottomNav, UserMenu, AppFooter } from '$lib/components';
 	import { initializeStores } from '$lib/stores/app';
 	import { shouldLoadDemoData, loadDemoData } from '$lib/stores/seed-data';
 
@@ -68,7 +68,7 @@
 	{@render children()}
 </main>
 
-<Footer directories={data.globalDirectories} {currentPath} />
+<AppFooter />
 <BottomNav />
 
 <style>
@@ -150,10 +150,6 @@
 		animation: none;
 	}
 
-	/* Hide Home link in footer */
-	:global(footer a[href="/"]) {
-		display: none !important;
-	}
 
 	:global(::view-transition-group(*)) {
 		animation-duration: 250ms;
