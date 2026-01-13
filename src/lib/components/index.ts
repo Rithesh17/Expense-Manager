@@ -2,6 +2,7 @@
 // Export all components for easy importing
 
 // Layout Components
+export { default as Navbar } from './Navbar.svelte';
 export { default as BottomNav } from './BottomNav.svelte';
 export { default as PageHeader } from './PageHeader.svelte';
 

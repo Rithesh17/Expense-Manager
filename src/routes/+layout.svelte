@@ -1,18 +1,15 @@
 <script lang="ts">
-	import { NavigationBar } from 'statue-ssg';
 	import { page } from '$app/stores';
 	import { onNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import '$lib/index.css';
-	import { BottomNav, UserMenu, AppFooter } from '$lib/components';
+	import { Navbar, BottomNav, AppFooter } from '$lib/components';
 	import { initializeStores } from '$lib/stores/app';
 	import { shouldLoadDemoData, loadDemoData } from '$lib/stores/seed-data';
 
 	let { data, children } = $props();
 
-	let searchConfig = $derived(data.searchConfig);
 	let navbarConfig = $derived(data.navbarConfig);
-	let currentPath = $derived($page.url.pathname);
 
 	// Initialize stores and load demo data if needed
 	onMount(() => {
@@ -22,19 +19,6 @@
 		}
 		// Initialize all stores from localStorage
 		initializeStores();
-	});
-
-	// Close mobile menu on route change
-	$effect(() => {
-		// Watch for route changes
-		$page.url.pathname;
-		
-		// Try to close any open mobile menu by clicking outside
-		// This is a workaround for statue-ssg NavigationBar
-		const mobileMenuButton = document.querySelector('nav button[aria-label*="menu"], nav button[aria-expanded="true"]');
-		if (mobileMenuButton && (mobileMenuButton as HTMLButtonElement).getAttribute('aria-expanded') === 'true') {
-			(mobileMenuButton as HTMLButtonElement).click();
-		}
 	});
 
 	// Enable View Transitions API for smooth page transitions
@@ -51,17 +35,10 @@
 </script>
 
 <div class="navbar-wrapper">
-	<NavigationBar
-		navbarItems={data.globalDirectories}
-		showSearch={false}
-		siteTitle={navbarConfig?.siteTitle ?? null}
+	<Navbar 
+		siteTitle={navbarConfig?.siteTitle ?? 'Expense Manager'}
 		logo={navbarConfig?.logo ?? null}
-		hiddenFromNav={navbarConfig?.hiddenFromNav ?? []}
-		{...(navbarConfig?.defaultNavItems && { defaultNavItems: navbarConfig.defaultNavItems })}
 	/>
-	<div class="user-menu-container">
-		<UserMenu />
-	</div>
 </div>
 
 <main class="app-main">
@@ -78,32 +55,6 @@
 		left: 0;
 		right: 0;
 		z-index: 100;
-		display: flex;
-		align-items: center;
-	}
-
-	.navbar-wrapper :global(nav) {
-		flex: 1;
-	}
-
-	.user-menu-container {
-		position: absolute;
-		right: 1rem;
-		top: 50%;
-		transform: translateY(-50%);
-		z-index: 101;
-	}
-
-	@media (max-width: 768px) {
-		.user-menu-container {
-			right: 4rem; /* Move left to avoid hamburger menu */
-		}
-	}
-
-	@media (max-width: 480px) {
-		.user-menu-container {
-			display: none; /* Hide on very small screens */
-		}
 	}
 
 	:global(body) {
@@ -156,7 +107,6 @@
 	:global(::view-transition-new(navbar)) {
 		animation: none;
 	}
-
 
 	:global(::view-transition-group(*)) {
 		animation-duration: 250ms;
