@@ -470,3 +470,106 @@ export function parseTags(tagString: string): string[] {
 export function tagsToString(tags: string[]): string {
   return tags.join(', ');
 }
+
+// ============================================
+// Chart Data Helpers
+// ============================================
+
+/**
+ * Get daily spending for the last N days
+ */
+export function getDailySpending(expenses: Expense[], days: number = 7): Array<{label: string, value: number, date: string}> {
+  const result: Array<{label: string, value: number, date: string}> = [];
+  const today = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const dayExpenses = expenses.filter(e => e.date.startsWith(dateStr));
+    const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    // Short day label (Mon, Tue, etc.)
+    const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    result.push({
+      label: dayLabel,
+      value: total,
+      date: dateStr
+    });
+  }
+  
+  return result;
+}
+
+/**
+ * Get monthly spending for the last N months
+ */
+export function getMonthlySpending(expenses: Expense[], months: number = 6): Array<{label: string, value: number, month: string}> {
+  const result: Array<{label: string, value: number, month: string}> = [];
+  const today = new Date();
+  
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    
+    const monthExpenses = expenses.filter(e => {
+      const expDate = new Date(e.date);
+      return expDate.getFullYear() === year && expDate.getMonth() === month;
+    });
+    
+    const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+    
+    // Short month label
+    const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
+    
+    result.push({
+      label: monthLabel,
+      value: total,
+      month: `${year}-${String(month + 1).padStart(2, '0')}`
+    });
+  }
+  
+  return result;
+}
+
+/**
+ * Get spending trend (daily totals) for sparkline
+ */
+export function getSpendingTrend(expenses: Expense[], days: number = 14): number[] {
+  const daily = getDailySpending(expenses, days);
+  return daily.map(d => d.value);
+}
+
+/**
+ * Get biggest expense from list
+ */
+export function getBiggestExpense(expenses: Expense[]): Expense | null {
+  if (expenses.length === 0) return null;
+  return expenses.reduce((max, e) => e.amount > max.amount ? e : max, expenses[0]);
+}
+
+/**
+ * Get most frequent category
+ */
+export function getMostFrequentCategory(expenses: Expense[]): string | null {
+  if (expenses.length === 0) return null;
+  
+  const counts: Record<string, number> = {};
+  expenses.forEach(e => {
+    counts[e.categoryId] = (counts[e.categoryId] || 0) + 1;
+  });
+  
+  let maxCount = 0;
+  let maxCat = null;
+  for (const [cat, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      maxCat = cat;
+    }
+  }
+  
+  return maxCat;
+}

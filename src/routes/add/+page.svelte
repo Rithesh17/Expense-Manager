@@ -238,6 +238,20 @@
 							bind:value={tags}
 						/>
 					</div>
+
+					<!-- Receipt Upload Placeholder -->
+					<div class="form-group">
+						<label class="em-label">Receipt</label>
+						<div class="receipt-upload-placeholder">
+							<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+								<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+								<circle cx="8.5" cy="8.5" r="1.5"></circle>
+								<polyline points="21 15 16 10 5 21"></polyline>
+							</svg>
+							<span class="upload-text">Receipt upload coming soon</span>
+							<span class="upload-hint">This feature will be available with Firebase integration</span>
+						</div>
+					</div>
 				</div>
 			</details>
 
@@ -472,6 +486,33 @@
 	.notes-input {
 		resize: vertical;
 		min-height: 80px;
+	}
+
+	/* Receipt Upload Placeholder */
+	.receipt-upload-placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 1.5rem;
+		background-color: var(--em-bg-tertiary);
+		border: 2px dashed var(--em-border);
+		border-radius: var(--em-radius-md);
+		color: var(--em-text-muted);
+		text-align: center;
+	}
+
+	.receipt-upload-placeholder svg {
+		opacity: 0.5;
+	}
+
+	.upload-text {
+		font-weight: 500;
+		color: var(--em-text-secondary);
+	}
+
+	.upload-hint {
+		font-size: 0.75rem;
 	}
 
 	/* Form Actions */

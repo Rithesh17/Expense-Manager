@@ -1207,9 +1207,9 @@ This section outlines the phased approach to building the Expense Tracker applic
 |-------|------|--------|-------------|
 | 1 | Project Setup & Core UI | ✅ Completed | Base configuration, layout, navigation, theme |
 | 2 | Data Layer & Storage | ✅ Completed | Svelte stores, localStorage persistence, mock data |
-| 3 | Expense Management | 🔲 Not Started | CRUD operations for expenses |
-| 4 | Category Management | 🔲 Not Started | Category CRUD, icons, colors |
-| 5 | Dashboard & Visualizations | 🔲 Not Started | Charts, metrics, quick stats |
+| 3 | Expense Management | ✅ Completed | CRUD operations for expenses |
+| 4 | Category Management | ✅ Completed | Category CRUD, icons, colors |
+| 5 | Dashboard & Visualizations | ✅ Completed | Charts, metrics, quick stats |
 | 6 | Budget Management | 🔲 Not Started | Budget tracking, alerts, progress |
 | 7 | Reports & Analytics | 🔲 Not Started | Advanced reports, exports, trends |
 | 8 | Search & Filtering | 🔲 Not Started | Full-text search, advanced filters |
@@ -1267,78 +1267,78 @@ This section outlines the phased approach to building the Expense Tracker applic
 
 ---
 
-### Phase 3: Expense Management
+### Phase 3: Expense Management ✅
 **Goal**: Full CRUD functionality for expenses
 
 #### Tasks
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 3.1 | Create Add Expense form | 🔲 | Amount, description, category, date, optional fields |
-| 3.2 | Implement form validation | 🔲 | Required fields, amount validation |
-| 3.3 | Create Expense List view | 🔲 | Table/card view with sorting |
-| 3.4 | Create Expense Detail view | 🔲 | Full expense details |
-| 3.5 | Implement Edit Expense functionality | 🔲 | Edit form with pre-populated data |
-| 3.6 | Implement Delete Expense with confirmation | 🔲 | Confirm dialog, soft delete option |
-| 3.7 | Add bulk selection and actions | 🔲 | Multi-select, bulk delete, bulk category change |
-| 3.8 | Create quick-add expense widget | 🔲 | Minimal form for fast entry |
-| 3.9 | Add receipt upload placeholder | 🔲 | UI ready for Firebase Storage later |
+| 3.1 | Create Add Expense form | ✅ | Amount, description, category, date, optional fields |
+| 3.2 | Implement form validation | ✅ | Required fields, amount validation |
+| 3.3 | Create Expense List view | ✅ | Table/card view with sorting |
+| 3.4 | Create Expense Detail view | ✅ | Full expense details with view/edit modes |
+| 3.5 | Implement Edit Expense functionality | ✅ | Edit form with pre-populated data |
+| 3.6 | Implement Delete Expense with confirmation | ✅ | Confirm dialog with modal |
+| 3.7 | Add bulk selection and actions | ✅ | Multi-select, bulk delete, bulk category change |
+| 3.8 | Create quick-add expense widget | ✅ | Modal form for fast entry from dashboard |
+| 3.9 | Add receipt upload placeholder | ✅ | UI ready for Firebase Storage later |
 
 #### Deliverables
-- [ ] Complete expense CRUD operations
-- [ ] Expense list with sorting
-- [ ] Form validation and error handling
-- [ ] Bulk operations
+- [x] Complete expense CRUD operations
+- [x] Expense list with sorting and filtering
+- [x] Form validation and error handling
+- [x] Bulk operations (delete, category change)
 
 ---
 
-### Phase 4: Category Management
+### Phase 4: Category Management ✅
 **Goal**: User-customizable expense categories
 
 #### Tasks
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 4.1 | Create default system categories | 🔲 | Food, Transport, Entertainment, etc. |
-| 4.2 | Create Category List page | 🔲 | Grid/list of categories |
-| 4.3 | Implement Add Category form | 🔲 | Name, icon, color, budget |
-| 4.4 | Create icon picker component | 🔲 | Emoji or icon library selection |
-| 4.5 | Create color picker component | 🔲 | Preset colors + custom |
-| 4.6 | Implement Edit Category functionality | 🔲 | Update category properties |
-| 4.7 | Implement Delete Category with reassignment | 🔲 | Reassign expenses before delete |
-| 4.8 | Add category hierarchy (subcategories) | 🔲 | Parent-child relationships |
-| 4.9 | Show expense count per category | 🔲 | Category stats |
+| 4.1 | Create default system categories | ✅ | 12 categories in seed-data.ts |
+| 4.2 | Create Category List page | ✅ | Grid view with stats |
+| 4.3 | Implement Add Category form | ✅ | Name, icon, color, budget |
+| 4.4 | Create icon picker component | ✅ | EmojiPicker with categorized emojis |
+| 4.5 | Create color picker component | ✅ | ColorPicker with presets + custom |
+| 4.6 | Implement Edit Category functionality | ✅ | Update all category properties |
+| 4.7 | Implement Delete Category with reassignment | ✅ | Reassign or delete expenses options |
+| 4.8 | Add category hierarchy (subcategories) | ⏸️ | Deferred - not critical for MVP |
+| 4.9 | Show expense count per category | ✅ | Total and monthly expense counts |
 
 #### Deliverables
-- [ ] Category CRUD operations
-- [ ] Visual category customization (icons, colors)
-- [ ] Category-expense relationship management
+- [x] Category CRUD operations
+- [x] Visual category customization (icons, colors)
+- [x] Category-expense relationship management
 
 ---
 
-### Phase 5: Dashboard & Visualizations
+### Phase 5: Dashboard & Visualizations ✅
 **Goal**: Rich visual dashboard with charts and metrics
 
 #### Tasks
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 5.1 | Install and configure chart library | 🔲 | Chart.js or ECharts |
-| 5.2 | Create metric cards component | 🔲 | Today, week, month totals |
-| 5.3 | Build pie/donut chart for category breakdown | 🔲 | Interactive, colored by category |
-| 5.4 | Build bar chart for spending over time | 🔲 | Daily/weekly/monthly view |
-| 5.5 | Build line chart for spending trends | 🔲 | Trend visualization |
-| 5.6 | Create recent expenses widget | 🔲 | Last 5-10 expenses |
-| 5.7 | Create top spending categories widget | 🔲 | Ranked category list |
-| 5.8 | Add quick stats (average, biggest, etc.) | 🔲 | Summary statistics |
-| 5.9 | Create budget progress indicators | 🔲 | Visual budget bars |
-| 5.10 | Add date range selector for dashboard | 🔲 | Filter dashboard by period |
+| 5.1 | Create chart components | ✅ | SVG-based DonutChart, BarChart, SparkLine |
+| 5.2 | Create metric cards component | ✅ | StatCard with today, period, average, budget |
+| 5.3 | Build pie/donut chart for category breakdown | ✅ | Interactive with legend |
+| 5.4 | Build bar chart for spending over time | ✅ | Last 7 days daily spending |
+| 5.5 | Build sparkline for spending trends | ✅ | 14-day trend mini chart |
+| 5.6 | Create recent expenses widget | ✅ | Last 5 expenses |
+| 5.7 | Create top spending categories widget | ✅ | Top 5 categories with progress bars |
+| 5.8 | Add quick stats (average, biggest, etc.) | ✅ | Biggest expense, top category, daily avg |
+| 5.9 | Create budget progress indicators | ✅ | Category budget bars with status colors |
+| 5.10 | Add date range selector for dashboard | ✅ | Week/Month/Year period selector |
 
 #### Deliverables
-- [ ] Interactive dashboard with multiple charts
-- [ ] Key metrics at a glance
-- [ ] Period-based filtering
-- [ ] Budget progress visualization
+- [x] Interactive dashboard with multiple charts
+- [x] Key metrics at a glance
+- [x] Period-based filtering
+- [x] Budget progress visualization
 
 ---
 
@@ -1513,6 +1513,6 @@ This section outlines the phased approach to building the Expense Tracker applic
 
 ---
 
-**Document Version**: 1.2  
+**Document Version**: 1.5  
 **Last Updated**: 2026-01-12  
-**Status**: Development Phase - Phase 3 Ready
+**Status**: Development Phase - Phase 6 Ready
