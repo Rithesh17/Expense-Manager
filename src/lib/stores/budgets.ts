@@ -13,6 +13,7 @@ import {
 } from '$lib/utils';
 import { browser } from '$app/environment';
 import { expenses } from './expenses';
+import { userId } from './auth';
 
 // ============================================
 // Store Creation
@@ -48,13 +49,14 @@ function createBudgetsStore() {
     /**
      * Add a new budget
      */
-    add: (data: {
+    add: async (data: {
       categoryId: string | null;
       amount: number;
       period: BudgetPeriod;
       startDate?: string;
       endDate?: string;
-    }, userId: string = 'local'): Budget => {
+    }, budgetUserId?: string): Promise<Budget> => {
+      const currentUserId = budgetUserId || get(userId) || 'local';
       const now = getCurrentTimestamp();
       
       // Calculate default start date based on period
@@ -75,7 +77,7 @@ function createBudgetsStore() {
       
       const budget: Budget = {
         id: generateId('bgt'),
-        userId,
+        userId: currentUserId,
         categoryId: data.categoryId,
         amount: data.amount,
         period: data.period,
@@ -87,44 +89,80 @@ function createBudgetsStore() {
       };
       
       update(budgets => [...budgets, budget]);
+      
+      // Sync to Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (currentUserId !== 'local') {
+        import('$lib/firebase/sync').then(({ syncBudgetToFirestore }) => {
+          syncBudgetToFirestore(budget).catch(err => {
+            console.error('Failed to sync budget to Firestore:', err);
+          });
+        });
+      }
+      
       return budget;
     },
     
     /**
      * Update an existing budget
      */
-    updateBudget: (id: string, updates: Partial<Budget>): boolean => {
+    updateBudget: async (id: string, updates: Partial<Budget>): Promise<boolean> => {
       let found = false;
+      let updatedBudget: Budget | null = null;
+      
       update(budgets => {
         return budgets.map(budget => {
           if (budget.id === id) {
             found = true;
-            return { 
+            updatedBudget = { 
               ...budget, 
               ...updates, 
               updatedAt: getCurrentTimestamp() 
             };
+            return updatedBudget;
           }
           return budget;
         });
       });
+      
+      // Sync to Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (found && updatedBudget && updatedBudget.userId !== 'local') {
+        import('$lib/firebase/sync').then(({ syncBudgetToFirestore }) => {
+          syncBudgetToFirestore(updatedBudget!).catch(err => {
+            console.error('Failed to sync budget update to Firestore:', err);
+          });
+        });
+      }
+      
       return found;
     },
     
     /**
      * Delete a budget
      */
-    delete: (id: string): boolean => {
+    delete: async (id: string): Promise<boolean> => {
+      const budget = get({ subscribe }).find(b => b.id === id);
+      const budgetUserId = budget?.userId;
+      
       let found = false;
       update(budgets => {
-        return budgets.filter(budget => {
-          if (budget.id === id) {
+        return budgets.filter(b => {
+          if (b.id === id) {
             found = true;
             return false;
           }
           return true;
         });
       });
+      
+      // Delete from Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (found && budgetUserId && budgetUserId !== 'local') {
+        import('$lib/firebase/sync').then(({ deleteBudgetFromFirestore }) => {
+          deleteBudgetFromFirestore(id).catch(err => {
+            console.error('Failed to delete budget from Firestore:', err);
+          });
+        });
+      }
+      
       return found;
     },
     

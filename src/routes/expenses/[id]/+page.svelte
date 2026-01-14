@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { PageHeader, Modal, EmptyState } from '$lib/components';
 	import { expenses, expenseActions, categories } from '$lib/stores';
 	import { preferences } from '$lib/stores/preferences';
@@ -13,8 +16,41 @@
 	// Check for edit mode from query params
 	let shouldStartEditing = $derived($page.url.searchParams.get('edit') === 'true');
 	
-	// Find the expense
-	let expense = $derived($expenses.find(e => e.id === expenseId));
+	// Track if we've initialized
+	let storesInitialized = $state(false);
+	
+	// Initialize stores on mount
+	onMount(async () => {
+		if (browser) {
+			try {
+				// Initialize stores
+				const { initializeStores } = await import('$lib/stores/app');
+				await initializeStores();
+				
+				// Also ensure expenses store is initialized
+				expenses.init();
+				
+				storesInitialized = true;
+			} catch (error) {
+				storesInitialized = true;
+			}
+		}
+	});
+	
+	let expense = $derived.by(() => {
+		if (!expenseId) return null;
+		
+		const allExpenses = $expenses;
+		let found = allExpenses.find(e => e.id === expenseId);
+		
+		if (!found) {
+			found = allExpenses.find(e => e.id.toLowerCase() === expenseId.toLowerCase());
+		}
+		
+		return found || null;
+	});
+	
+	let expensesLoading = $derived(!storesInitialized || ($expenses.length === 0 && storesInitialized));
 	
 	// Get category info
 	let category = $derived(expense ? $categories.find(c => c.id === expense.categoryId) : null);
@@ -28,7 +64,42 @@
 	$effect(() => {
 		if (shouldStartEditing && expense && !hasInitialized) {
 			hasInitialized = true;
-			startEditing();
+			// Small delay to ensure page is fully loaded
+			setTimeout(() => {
+				startEditing();
+			}, 100);
+		}
+	});
+	
+	let redirectAttempted = $state(false);
+	let hasWaitedForLoad = $state(false);
+	
+	$effect(() => {
+		if (storesInitialized && !hasWaitedForLoad) {
+			const timeout = setTimeout(() => {
+				hasWaitedForLoad = true;
+			}, 4000);
+			return () => clearTimeout(timeout);
+		}
+	});
+	
+	$effect(() => {
+		if (
+			expenseId && 
+			storesInitialized &&
+			hasWaitedForLoad && 
+			!expensesLoading && 
+			$expenses.length > 0 &&
+			!expense && 
+			!redirectAttempted &&
+			window.location.pathname.includes(`/expenses/${expenseId}`)
+		) {
+			redirectAttempted = true;
+			setTimeout(() => {
+				if (window.location.pathname.includes(`/expenses/${expenseId}`)) {
+					window.location.replace(`${base}/expenses`);
+				}
+			}, 1000);
 		}
 	});
 	
@@ -72,7 +143,7 @@
 		editError = '';
 	}
 
-	function handleSaveEdit(e: Event) {
+	async function handleSaveEdit(e: Event) {
 		e.preventDefault();
 		editError = '';
 
@@ -106,7 +177,7 @@
 				tags: editTags.trim() ? editTags.split(',').map(t => t.trim().toLowerCase()).filter(t => t) : undefined
 			};
 
-			expenseActions.update(expenseId, updates);
+			await expenseActions.update(expenseId, updates);
 			isEditing = false;
 		} catch (err) {
 			editError = 'Failed to save changes. Please try again.';
@@ -116,9 +187,10 @@
 		}
 	}
 
-	function handleDelete() {
-		expenseActions.delete(expenseId);
-		goto('/expenses');
+	async function handleDelete() {
+		await expenseActions.delete(expenseId);
+		// Use window.location to avoid SvelteKit routing issues on static sites
+		window.location.href = `${base}/expenses`;
 	}
 
 	function getPaymentMethodInfo(method: PaymentMethod | undefined) {
@@ -127,23 +199,47 @@
 </script>
 
 <svelte:head>
-	<title>{expense ? expense.description : 'Expense Not Found'} | Expense Manager</title>
+	<title>{expense ? expense.description : 'Expense Not Found'} | SpendWise</title>
 	<meta name="description" content="View expense details" />
 </svelte:head>
 
 <div class="expense-detail-page">
 	<div class="container mx-auto px-4">
 		{#if !expense}
-			<PageHeader 
-				title="Expense Not Found" 
-				showBackButton={true}
-			/>
-			<EmptyState
-				title="Expense not found"
-				message="This expense may have been deleted or doesn't exist."
+			{#if !storesInitialized || !hasWaitedForLoad || expensesLoading}
+				<PageHeader 
+					title="Loading..." 
+					showBackButton={true}
+				/>
+				<EmptyState
+					title="Loading expense"
+					message="Please wait while we load the expense details..."
+					icon="⏳"
+				/>
+			{:else if $expenses.length === 0}
+				<PageHeader 
+					title="No Expenses" 
+					showBackButton={true}
+				/>
+				<EmptyState
+					title="No expenses found"
+					message="You don't have any expenses yet. Redirecting to expenses list..."
+					icon="📋"
+				/>
+			{:else}
+				<PageHeader 
+					title="Expense Not Found" 
+					showBackButton={true}
+				/>
+				<EmptyState
+					title="Expense not found"
+					message="This expense may have been deleted or doesn't exist. Redirecting to expenses list..."
+					icon="❌"
+				/>
+			{/if}
 				icon="🔍"
 				actionLabel="View All Expenses"
-				actionHref="/expenses"
+				actionHref={`${base}/expenses`}
 			/>
 		{:else if isEditing}
 			<!-- Edit Mode -->

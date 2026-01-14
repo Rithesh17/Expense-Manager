@@ -3,14 +3,14 @@
 </script>
 
 <svelte:head>
-	<title>About | Expense Manager</title>
-	<meta name="description" content="Learn about Expense Manager - your personal expense tracking solution." />
+	<title>About | SpendWise</title>
+	<meta name="description" content="Learn about SpendWise - your personal expense tracking solution." />
 </svelte:head>
 
 <div class="about-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
-			title="About Expense Manager" 
+			title="About SpendWise" 
 			subtitle="Your personal finance companion"
 		/>
 
@@ -19,7 +19,7 @@
 			<div class="hero-icon">💰</div>
 			<h2 class="hero-title">Take Control of Your Finances</h2>
 			<p class="hero-description">
-				Expense Manager is a free, privacy-focused expense tracking application that helps you 
+				SpendWise is a free, privacy-focused expense tracking application that helps you 
 				understand your spending habits, set budgets, and achieve your financial goals.
 			</p>
 		</section>
@@ -105,7 +105,7 @@
 		<section class="open-source-section">
 			<h3 class="section-title">Open Source</h3>
 			<p class="open-source-text">
-				Expense Manager is open source and free to use. Contributions are welcome!
+				SpendWise is open source and free to use. Contributions are welcome!
 			</p>
 			<a href="https://github.com/expense-manager" target="_blank" class="github-link em-btn em-btn-primary">
 				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -1,24 +1,55 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import { onNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import '$lib/index.css';
 	import { Navbar, BottomNav, AppFooter } from '$lib/components';
 	import { initializeStores } from '$lib/stores/app';
 	import { shouldLoadDemoData, loadDemoData } from '$lib/stores/seed-data';
+	import { isAuthenticated, authLoading } from '$lib/stores';
 
 	let { data, children } = $props();
 
 	let navbarConfig = $derived(data.navbarConfig);
 
+	// Protected routes that require authentication (without base path)
+	const protectedRoutes = ['/expenses', '/budgets', '/categories', '/reports', '/profile', '/add'];
+	// Public routes that don't require authentication
+	const publicRoutes = ['/', '/about', '/login', '/register', '/forgot-password'];
+
+	// Check if current route is protected
+	function isProtectedRoute(pathname: string): boolean {
+		// Remove base path for comparison
+		const pathWithoutBase = pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
+		// Normalize: ensure it starts with /
+		const normalized = pathWithoutBase.startsWith('/') ? pathWithoutBase : '/' + pathWithoutBase;
+		return protectedRoutes.some(route => normalized === route || normalized.startsWith(route + '/'));
+	}
+
+	// Check if current route is public
+	function isPublicRoute(pathname: string): boolean {
+		// Remove base path for comparison
+		const pathWithoutBase = pathname.startsWith(base) ? pathname.slice(base.length) : pathname;
+		// Normalize: ensure it starts with /
+		const normalized = pathWithoutBase.startsWith('/') ? pathWithoutBase : '/' + pathWithoutBase;
+		return publicRoutes.some(route => normalized === route || normalized.startsWith(route + '/'));
+	}
+
+	// Note: We no longer redirect protected routes - instead, pages show demo previews
+	// when not authenticated. This allows users to see what each page offers.
+
 	// Initialize stores and load demo data if needed
-	onMount(() => {
-		// Load demo data for first-time users
-		if (shouldLoadDemoData()) {
+	onMount(async () => {
+		// Initialize all stores from localStorage first
+		await initializeStores();
+		
+		// Load demo data for non-authenticated users to show previews
+		// This data is used for demo previews on protected routes
+		if (!$isAuthenticated && shouldLoadDemoData()) {
 			loadDemoData();
 		}
-		// Initialize all stores from localStorage
-		initializeStores();
 	});
 
 	// Enable View Transitions API for smooth page transitions
@@ -36,10 +67,17 @@
 
 <div class="navbar-wrapper">
 	<Navbar 
-		siteTitle={navbarConfig?.siteTitle ?? 'Expense Manager'}
+		siteTitle={navbarConfig?.siteTitle ?? 'SpendWise'}
 		logo={navbarConfig?.logo ?? null}
 	/>
 </div>
+
+<svelte:head>
+	<link rel="icon" type="image/x-icon" href={`${base}/favicon.ico`} />
+	<link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`} />
+	<link rel="icon" type="image/png" href={`${base}/favicon.png`} />
+	<link rel="apple-touch-icon" href={`${base}/favicon.png`} />
+</svelte:head>
 
 <main class="app-main">
 	{@render children()}

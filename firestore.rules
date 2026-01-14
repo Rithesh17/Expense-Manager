@@ -1,0 +1,229 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the document (for documents with userId field)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validate that userId field in new/updated document matches authenticated user
+    function hasValidUserId() {
+      return request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Validate that userId field cannot be changed during update
+    function userIdUnchanged() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+    
+    // Validate amount is a positive number
+    function hasValidAmount() {
+      return request.resource.data.amount is number 
+             && request.resource.data.amount > 0;
+    }
+    
+    // Validate required string field is not empty
+    function hasNonEmptyString(field) {
+      return request.resource.data[field] is string 
+             && request.resource.data[field].size() > 0;
+    }
+    
+    // Validate timestamp field
+    function hasValidTimestamp(field) {
+      return request.resource.data[field] is timestamp;
+    }
+    
+    // ============================================
+    // USER PROFILES
+    // Collection: /users/{userId}
+    // ============================================
+    match /users/{userId} {
+      // Users can only read their own profile
+      allow read: if isOwner(userId);
+      
+      // Users can only create their own profile (userId must match auth uid)
+      allow create: if isOwner(userId)
+                    && request.resource.data.id == userId;
+      
+      // Users can only update their own profile
+      // Cannot change the id field
+      allow update: if isOwner(userId)
+                    && request.resource.data.id == userId;
+      
+      // Users can only delete their own profile
+      allow delete: if isOwner(userId);
+    }
+    
+    // ============================================
+    // EXPENSES
+    // Collection: /expenses/{expenseId}
+    // ============================================
+    match /expenses/{expenseId} {
+      // Only owner can read their expenses
+      // Handle case where document doesn't exist yet (for create operations)
+      allow read: if isAuthenticated() 
+                  && (!resource.exists || resource.data.userId == request.auth.uid);
+      
+      // Create: Must be authenticated, set own userId, valid amount and description
+      allow create: if isAuthenticated() 
+                    && hasValidUserId()
+                    && hasValidAmount()
+                    && hasNonEmptyString('description')
+                    && hasNonEmptyString('categoryId');
+      
+      // Update: Must be owner, cannot change userId, valid amount
+      allow update: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid
+                    && userIdUnchanged()
+                    && hasValidAmount()
+                    && hasNonEmptyString('description')
+                    && hasNonEmptyString('categoryId');
+      
+      // Delete: Only owner can delete
+      allow delete: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // CATEGORIES
+    // Collection: /categories/{categoryId}
+    // ============================================
+    match /categories/{categoryId} {
+      // Only owner can read their categories
+      // System categories (userId == null) are readable by all authenticated users
+      // Handle case where document doesn't exist yet (for create operations)
+      allow read: if isAuthenticated() 
+                  && (!resource.exists 
+                      || resource.data.userId == request.auth.uid 
+                      || resource.data.userId == null);
+      
+      // Create: Must be authenticated, set own userId (or null for system categories), valid name
+      allow create: if isAuthenticated() 
+                    && (request.resource.data.userId == request.auth.uid 
+                        || request.resource.data.userId == null)
+                    && hasNonEmptyString('name');
+      
+      // Update: Must be owner, cannot change userId
+      // System categories (userId == null) should not be modified by users
+      allow update: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid
+                    && userIdUnchanged()
+                    && hasNonEmptyString('name');
+      
+      // Delete: Only owner can delete
+      // System categories (userId == null) should not be deletable by users
+      allow delete: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // BUDGETS
+    // Collection: /budgets/{budgetId}
+    // ============================================
+    match /budgets/{budgetId} {
+      // Only owner can read their budgets
+      // Handle case where document doesn't exist yet (for create operations)
+      allow read: if isAuthenticated() 
+                  && (!resource.exists || resource.data.userId == request.auth.uid);
+      
+      // Create: Must be authenticated, set own userId, valid amount and period
+      allow create: if isAuthenticated() 
+                    && hasValidUserId()
+                    && hasValidAmount()
+                    && hasNonEmptyString('period');
+      
+      // Update: Must be owner, cannot change userId, valid amount
+      allow update: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid
+                    && userIdUnchanged()
+                    && hasValidAmount()
+                    && hasNonEmptyString('period');
+      
+      // Delete: Only owner can delete
+      allow delete: if isAuthenticated() 
+                    && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // FUTURE: SHAREABLE EXPENSES (Phase 10)
+    // Uncomment when implementing sharing features
+    // ============================================
+    // match /sharedExpenses/{shareId} {
+    //   // Public read access for shareable expenses
+    //   allow read: if resource.data.shareable == true;
+    //   
+    //   // Only owner can create/update/delete
+    //   allow create: if isAuthenticated() && hasValidUserId();
+    //   allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    //   allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    // }
+    
+    // ============================================
+    // FUTURE: GROUPS (Phase 10)
+    // Uncomment when implementing group features
+    // ============================================
+    // match /groups/{groupId} {
+    //   // Members can read group
+    //   allow read: if isAuthenticated() 
+    //               && request.auth.uid in resource.data.members;
+    //   
+    //   // Only authenticated users can create groups
+    //   allow create: if isAuthenticated() 
+    //                 && request.resource.data.createdBy == request.auth.uid
+    //                 && request.auth.uid in request.resource.data.members;
+    //   
+    //   // Only admin can update group
+    //   allow update: if isAuthenticated() 
+    //                 && resource.data.memberRoles[request.auth.uid] == 'admin';
+    //   
+    //   // Only creator can delete group
+    //   allow delete: if isAuthenticated() 
+    //                 && resource.data.createdBy == request.auth.uid;
+    // }
+    
+    // ============================================
+    // FUTURE: FRIEND RELATIONSHIPS (Phase 10)
+    // Uncomment when implementing friend features
+    // ============================================
+    // match /friends/{friendshipId} {
+    //   // Both users in the relationship can read
+    //   allow read: if isAuthenticated() 
+    //               && (resource.data.userId == request.auth.uid 
+    //                   || resource.data.friendId == request.auth.uid);
+    //   
+    //   // Only initiator can create
+    //   allow create: if isAuthenticated() 
+    //                 && request.resource.data.userId == request.auth.uid;
+    //   
+    //   // Both users can update (for accepting/declining)
+    //   allow update: if isAuthenticated() 
+    //                 && (resource.data.userId == request.auth.uid 
+    //                     || resource.data.friendId == request.auth.uid);
+    //   
+    //   // Either user can delete the friendship
+    //   allow delete: if isAuthenticated() 
+    //                 && (resource.data.userId == request.auth.uid 
+    //                     || resource.data.friendId == request.auth.uid);
+    // }
+    
+    // ============================================
+    // DENY ALL OTHER ACCESS
+    // This is a catch-all rule that denies access to any
+    // collections not explicitly defined above
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

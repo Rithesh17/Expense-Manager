@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { base } from '$app/paths';
 	import UserMenu from './UserMenu.svelte';
 
 	interface NavItem {
@@ -8,7 +9,7 @@
 	}
 
 	let {
-		siteTitle = 'Expense Manager',
+		siteTitle = 'SpendWise',
 		logo = null as string | null,
 		navItems = [] as NavItem[]
 	} = $props();
@@ -87,7 +88,7 @@
 <nav class="navbar" bind:this={navRef}>
 	<div class="navbar-container">
 		<!-- Logo / Site Title -->
-		<a href="/" class="navbar-brand">
+		<a href={`${base}/`} class="navbar-brand">
 			{#if logo}
 				<img src={logo} alt={siteTitle} class="navbar-logo" />
 			{:else}
@@ -99,7 +100,7 @@
 		<div class="navbar-nav desktop-nav">
 			{#each displayItems as item}
 				<a 
-					href={item.url} 
+					href={`${base}${item.url}`} 
 					class="nav-link"
 					class:active={isActive(item.url)}
 				>
@@ -142,7 +143,7 @@
 		<div class="mobile-nav">
 			{#each displayItems as item}
 				<a 
-					href={item.url} 
+					href={`${base}${item.url}`} 
 					class="mobile-nav-link"
 					class:active={isActive(item.url)}
 					onclick={closeMenu}
@@ -151,10 +152,10 @@
 				</a>
 			{/each}
 			<div class="mobile-nav-divider"></div>
-			<a href="/settings" class="mobile-nav-link" onclick={closeMenu}>
-				⚙️ Settings
+			<a href={`${base}/profile`} class="mobile-nav-link" onclick={closeMenu}>
+				👤 Profile
 			</a>
-			<a href="/about" class="mobile-nav-link" onclick={closeMenu}>
+			<a href={`${base}/about`} class="mobile-nav-link" onclick={closeMenu}>
 				ℹ️ About
 			</a>
 		</div>

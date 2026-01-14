@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { PageHeader, StatCard, DonutChart, BarChart, SpendingHeatmap, EmptyState } from '$lib/components';
+	import { PageHeader, StatCard, DonutChart, BarChart, SpendingHeatmap, EmptyState, DemoPreview } from '$lib/components';
 	import { 
 		expenses,
 		weekExpenses, 
 		monthExpenses,
 		weekStats,
 		monthStats,
-		categories
+		categories,
+		isAuthenticated,
+		authLoading
 	} from '$lib/stores';
 	import { preferences } from '$lib/stores/preferences';
 	import { 
@@ -99,7 +101,18 @@
 	let dailySpendingMap = $derived(() => {
 		const map = new Map<string, number>();
 		$expenses.forEach(exp => {
-			const dateStr = exp.date.split('T')[0];
+			// Handle date as string, Date object, or Timestamp
+			let dateStr: string;
+			if (typeof exp.date === 'string') {
+				dateStr = exp.date.split('T')[0];
+			} else if (exp.date instanceof Date) {
+				dateStr = exp.date.toISOString().split('T')[0];
+			} else if (exp.date && typeof exp.date === 'object' && 'toDate' in exp.date) {
+				// Firestore Timestamp
+				dateStr = (exp.date as any).toDate().toISOString().split('T')[0];
+			} else {
+				dateStr = new Date(exp.date).toISOString().split('T')[0];
+			}
 			map.set(dateStr, (map.get(dateStr) || 0) + exp.amount);
 		});
 		return map;
@@ -112,7 +125,19 @@
 		const counts = [0, 0, 0, 0, 0, 0, 0];
 		
 		currentExpenses().forEach(exp => {
-			const day = new Date(exp.date).getDay();
+			// Handle date as string, Date object, or Timestamp
+			let expDate: Date;
+			if (typeof exp.date === 'string') {
+				expDate = new Date(exp.date);
+			} else if (exp.date instanceof Date) {
+				expDate = exp.date;
+			} else if (exp.date && typeof exp.date === 'object' && 'toDate' in exp.date) {
+				// Firestore Timestamp
+				expDate = (exp.date as any).toDate();
+			} else {
+				expDate = new Date(exp.date);
+			}
+			const day = expDate.getDay();
 			totals[day] += exp.amount;
 			counts[day]++;
 		});
@@ -215,10 +240,11 @@
 </script>
 
 <svelte:head>
-	<title>Reports | Expense Manager</title>
+	<title>Reports | SpendWise</title>
 	<meta name="description" content="View detailed reports and analytics of your spending." />
 </svelte:head>
 
+{#snippet reportsContent()}
 <div class="reports-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
@@ -501,6 +527,26 @@
 		</section>
 	</div>
 </div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="reports-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Reports" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Reports"
+		description="Get detailed insights into your spending patterns with comprehensive analytics, category breakdowns, spending trends, and visual heatmaps. Track your expenses across different time periods and payment methods."
+	>
+		{#snippet previewContent()}
+			{@render reportsContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render reportsContent()}
+{/if}
 
 <style>
 	.reports-page {

@@ -24,8 +24,8 @@
 
 	// Calculate bar dimensions
 	let barGap = 8;
-	let labelHeight = showLabels ? 24 : 0;
-	let valueHeight = showValues ? 20 : 0;
+	let labelHeight = $derived(showLabels ? 24 : 0);
+	let valueHeight = $derived(showValues ? 20 : 0);
 	let chartHeight = $derived(height - labelHeight - valueHeight);
 
 	// Get bar height percentage

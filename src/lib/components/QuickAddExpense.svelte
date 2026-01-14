@@ -42,7 +42,7 @@
 		onclose?.();
 	}
 
-	function handleSubmit(e: Event) {
+	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		error = '';
 		
@@ -73,7 +73,7 @@
 				paymentMethod
 			};
 			
-			expenseActions.add(formData);
+			await expenseActions.add(formData);
 			resetForm();
 			onsuccess?.();
 			onclose?.();
@@ -85,7 +85,7 @@
 		}
 	}
 
-	function handleSubmitAndAddAnother(e: Event) {
+	async function handleSubmitAndAddAnother(e: Event) {
 		e.preventDefault();
 		error = '';
 		
@@ -116,7 +116,7 @@
 				paymentMethod
 			};
 			
-			expenseActions.add(formData);
+			await expenseActions.add(formData);
 			
 			// Reset only amount and description for quick successive entries
 			amount = '';
@@ -199,7 +199,7 @@
 		</div>
 
 		<!-- Hidden submit for enter key -->
-		<button type="submit" hidden></button>
+		<button type="submit" hidden aria-label="Submit form"></button>
 	</form>
 {/snippet}
 

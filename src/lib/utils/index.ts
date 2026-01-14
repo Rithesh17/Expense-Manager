@@ -243,8 +243,19 @@ export function filterByDateRange(
   const end = endOfDay(endDate).getTime();
   
   return expenses.filter(exp => {
-    const expDate = new Date(exp.date).getTime();
-    return expDate >= start && expDate <= end;
+    // Handle date as string, Date object, or Timestamp
+    let expDate: Date;
+    if (typeof exp.date === 'string') {
+      expDate = new Date(exp.date);
+    } else if (exp.date instanceof Date) {
+      expDate = exp.date;
+    } else if (exp.date && typeof exp.date === 'object' && 'toDate' in exp.date) {
+      // Firestore Timestamp
+      expDate = (exp.date as any).toDate();
+    } else {
+      expDate = new Date(exp.date);
+    }
+    return expDate.getTime() >= start && expDate.getTime() <= end;
   });
 }
 
@@ -356,7 +367,14 @@ export function sortExpenses(
     
     switch (field) {
       case 'date':
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+        // Handle date as string, Date object, or Timestamp
+        const getDateValue = (date: any): number => {
+          if (typeof date === 'string') return new Date(date).getTime();
+          if (date instanceof Date) return date.getTime();
+          if (date && typeof date === 'object' && 'toDate' in date) return (date as any).toDate().getTime();
+          return new Date(date).getTime();
+        };
+        comparison = getDateValue(a.date) - getDateValue(b.date);
         break;
       case 'amount':
         comparison = a.amount - b.amount;
@@ -487,7 +505,15 @@ export function getDailySpending(expenses: Expense[], days: number = 7): Array<{
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
     
-    const dayExpenses = expenses.filter(e => e.date.startsWith(dateStr));
+    const dayExpenses = expenses.filter(e => {
+      // Handle date as string, Date object, or Timestamp
+      const expenseDate = typeof e.date === 'string' 
+        ? e.date 
+        : (e.date instanceof Date 
+          ? e.date.toISOString().split('T')[0] 
+          : new Date(e.date).toISOString().split('T')[0]);
+      return expenseDate.startsWith(dateStr);
+    });
     const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
     
     // Short day label (Mon, Tue, etc.)
@@ -516,7 +542,17 @@ export function getMonthlySpending(expenses: Expense[], months: number = 6): Arr
     const month = date.getMonth();
     
     const monthExpenses = expenses.filter(e => {
-      const expDate = new Date(e.date);
+      // Handle date as string, Date object, or Timestamp
+      let expDate: Date;
+      if (typeof e.date === 'string') {
+        expDate = new Date(e.date);
+      } else if (e.date instanceof Date) {
+        expDate = e.date;
+      } else if (e.date && typeof e.date === 'object' && 'toDate' in e.date) {
+        expDate = (e.date as any).toDate();
+      } else {
+        expDate = new Date(e.date);
+      }
       return expDate.getFullYear() === year && expDate.getMonth() === month;
     });
     

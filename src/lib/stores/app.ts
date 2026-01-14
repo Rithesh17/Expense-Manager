@@ -3,9 +3,6 @@
 import { writable, derived } from 'svelte/store';
 import type { AppState } from '$lib/types';
 import { browser } from '$app/environment';
-import { expenses } from './expenses';
-import { categories } from './categories';
-import { budgets } from './budgets';
 import { preferences, initializeTheme } from './preferences';
 import { loadFromStorage } from '$lib/utils/storage';
 
@@ -77,7 +74,7 @@ export const appState = createAppStateStore();
 /**
  * Initialize all stores from storage
  */
-export function initializeStores(): void {
+export async function initializeStores(): Promise<void> {
   if (!browser) return;
   
   appState.setLoading(true);
@@ -86,7 +83,11 @@ export function initializeStores(): void {
     // Load data from storage
     const data = loadFromStorage();
     
-    // Initialize each store
+    // Initialize each store (using dynamic imports to avoid SSR issues)
+    const { expenses } = await import('./expenses');
+    const { categories } = await import('./categories');
+    const { budgets } = await import('./budgets');
+    
     expenses.init();
     categories.init();
     budgets.init();
@@ -101,6 +102,25 @@ export function initializeStores(): void {
     
     // Set initial online state
     appState.setOnline(navigator.onLine);
+    
+    // Start Firestore sync if authenticated (only in browser)
+    const { isAuthenticated } = await import('./auth');
+    const { startFirestoreSync, stopFirestoreSync } = await import('$lib/firebase/sync');
+    
+    const unsubscribe = isAuthenticated.subscribe(async (authenticated) => {
+      if (authenticated) {
+        try {
+          await startFirestoreSync();
+          appState.updateLastSync();
+        } catch (error) {
+          console.error('Failed to start Firestore sync:', error);
+        }
+      } else {
+        stopFirestoreSync();
+      }
+    });
+    
+    // Cleanup subscription on unmount (handled by Svelte)
     
     appState.updateLastSync();
   } catch (error) {

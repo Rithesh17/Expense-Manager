@@ -1,23 +1,23 @@
-# 💰 Expense Manager
+# SpendWise
 
-A free, privacy-focused personal expense tracking web application. Track your spending, manage budgets, categorize expenses, and gain insights into your financial habits.
+A free, privacy-focused personal expense tracking web application. Made this so I can be more responsible with my money XD
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![SvelteKit](https://img.shields.io/badge/SvelteKit-5.0-orange.svg)
-![Status](https://img.shields.io/badge/status-Phase%202%20Complete-green.svg)
+![Status](https://img.shields.io/badge/status-Production%20Ready-green.svg)
 
-## ✨ Features
+## Features
 
-- 📊 **Visual Dashboard** - See your spending at a glance with charts and metrics
-- 🏷️ **Custom Categories** - Organize expenses with icons, colors, and subcategories
-- 💵 **Budget Tracking** - Set spending limits and get alerts when approaching budget
-- 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
-- 🔒 **Privacy First** - Your data stays private; share only what you choose
-- 👥 **Share & Split** - Share expenses with friends and split bills easily
-- 📴 **Offline Support** - Works offline with automatic sync when online (coming soon)
-- 📤 **Import/Export** - Export your data as JSON or CSV (coming soon)
+- **Visual Dashboard** - See your spending at a glance with charts and metrics
+- **Custom Categories** - Organize expenses with icons, colors, and subcategories
+- **Budget Tracking** - Set spending limits and get alerts when approaching budget
+- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile
+- **Privacy First** - Your data stays private; share only what you choose
+- **Share & Split** - Share expenses with friends and split bills easily
+- **Offline Support** - Works offline with automatic sync when online (coming soon)
+- **Import/Export** - Export your data as JSON or CSV (coming soon)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -28,8 +28,8 @@ A free, privacy-focused personal expense tracking web application. Track your sp
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/expense-manager.git
-cd expense-manager
+git clone https://github.com/your-username/spendwise.git
+cd spendwise
 
 # Install dependencies
 npm install
@@ -50,7 +50,20 @@ npm run build
 npm run preview
 ```
 
-## 🏗️ Tech Stack
+## Documentation
+
+Comprehensive documentation is available in the [`docs/`](./docs/) folder:
+
+- [Getting Started](./docs/getting-started.md) - Quick start guide
+- [Installation Guide](./docs/installation.md) - Detailed setup
+- [Firebase Setup](./docs/firebase-setup.md) - Cloud sync configuration
+- [Deployment Guide](./docs/deployment.md) - Deploy to GitHub Pages
+- [Development Guide](./docs/development.md) - For contributors
+- [Architecture](./docs/architecture.md) - Technical overview
+
+**New to SpendWise?** Start with the [Getting Started Guide](./docs/getting-started.md)!
+
+## Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -61,14 +74,15 @@ npm run preview
 | [Firebase](https://firebase.google.com/) | Backend (Auth, Firestore, Storage) - Phase 9 |
 | [GitHub Pages](https://pages.github.com/) | Hosting |
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-expense-manager/
+spendwise/
 ├── src/
 │   ├── lib/
 │   │   ├── components/     # Reusable UI components
 │   │   ├── stores/         # Svelte stores with localStorage persistence
+│   │   ├── firebase/       # Firebase integration
 │   │   ├── types/          # TypeScript interfaces
 │   │   ├── utils/          # Utility functions
 │   │   └── index.css       # Global styles & theme
@@ -79,33 +93,14 @@ expense-manager/
 │       ├── categories/     # Category management
 │       ├── budgets/        # Budget tracking
 │       ├── reports/        # Analytics & reports
-│       └── settings/       # User settings
+│       └── profile/        # User profile & settings
 ├── static/                 # Static assets
-├── content/                # Markdown content (legal pages)
+├── docs/                   # Documentation
 ├── site.config.js          # Site configuration
-├── EXPENSE_TRACKER_DESIGN.md  # Full design document
 └── package.json
 ```
 
-## 📋 Development Phases
-
-| Phase | Name | Status |
-|-------|------|--------|
-| 1 | Project Setup & Core UI | ✅ Complete |
-| 2 | Data Layer & Storage | ✅ Complete |
-| 3 | Expense Management | 🔲 Not Started |
-| 4 | Category Management | 🔲 Not Started |
-| 5 | Dashboard & Visualizations | 🔲 Not Started |
-| 6 | Budget Management | 🔲 Not Started |
-| 7 | Reports & Analytics | 🔲 Not Started |
-| 8 | Search & Filtering | 🔲 Not Started |
-| 9 | Firebase Integration | 🔲 Not Started |
-| 10 | Sharing & Collaboration | 🔲 Not Started |
-| 11 | Polish & Optimization | 🔲 Not Started |
-
-See [EXPENSE_TRACKER_DESIGN.md](./EXPENSE_TRACKER_DESIGN.md) for detailed specifications.
-
-## 🎨 Components
+## Components
 
 The app includes a custom component library:
 
@@ -122,7 +117,7 @@ The app includes a custom component library:
 | `Icon` | 50+ SVG icons |
 | `BottomNav` | Mobile navigation |
 
-## 🛠️ Available Scripts
+## Available Scripts
 
 | Command | Description |
 |---------|-------------|
@@ -133,21 +128,24 @@ The app includes a custom component library:
 | `npm run format` | Format code with Prettier |
 | `npm run lint` | Lint code with ESLint |
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please read the design document first to understand the architecture and planned features.
+Contributions are welcome! Please read the [Development Guide](./docs/development.md) first.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes and test them
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
-## 📄 License
+See [Development Guide](./docs/development.md) for detailed contribution guidelines.
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [SvelteKit](https://kit.svelte.dev/)
 - Styled with [Tailwind CSS](https://tailwindcss.com/)
@@ -156,4 +154,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ for better personal finance management**
+**Made with ❤️ for my own better personal finance management**

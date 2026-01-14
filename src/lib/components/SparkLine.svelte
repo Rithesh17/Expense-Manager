@@ -29,36 +29,36 @@
 	let range = $derived(maxValue - minValue || 1);
 
 	// Padding for stroke
-	let padding = strokeWidth + 2;
+	let padding = $derived(strokeWidth + 2);
 
 	// Calculate points
 	let points = $derived(() => {
 		if (data.length < 2) return [];
-		
-		const chartWidth = width - padding * 2;
-		const chartHeight = height - padding * 2;
+		const pad = padding;
+		const chartWidth = width - pad * 2;
+		const chartHeight = height - pad * 2;
 		const stepX = chartWidth / (data.length - 1);
 		
 		return data.map((value, index) => {
-			const x = padding + index * stepX;
-			const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+			const x = pad + index * stepX;
+			const y = pad + chartHeight - ((value - minValue) / range) * chartHeight;
 			return { x, y, value };
 		});
 	});
 
 	// Create SVG path
 	let linePath = $derived(() => {
-		const pts = points();
+		const pts = points;
 		if (pts.length < 2) return '';
 		return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 	});
 
 	// Create area path (for fill)
 	let areaPath = $derived(() => {
-		const pts = points();
+		const pts = points;
 		if (pts.length < 2) return '';
 		const chartBottom = height - padding;
-		return `${linePath()} L ${pts[pts.length - 1].x} ${chartBottom} L ${pts[0].x} ${chartBottom} Z`;
+		return `${linePath} L ${pts[pts.length - 1].x} ${chartBottom} L ${pts[0].x} ${chartBottom} Z`;
 	});
 
 	// Determine trend
@@ -74,8 +74,8 @@
 	// Get trend color
 	let trendColor = $derived(() => {
 		// For expenses, down is good (green), up is bad (red)
-		if (trend() === 'down') return 'var(--em-income)';
-		if (trend() === 'up') return 'var(--em-expense)';
+		if (trend === 'down') return 'var(--em-income)';
+		if (trend === 'up') return 'var(--em-expense)';
 		return color;
 	});
 </script>
@@ -90,7 +90,7 @@
 		<!-- Area fill -->
 		{#if showArea && fillColor}
 			<path
-				d={areaPath()}
+				d={areaPath}
 				fill={fillColor}
 				opacity="0.2"
 			/>
@@ -98,7 +98,7 @@
 
 		<!-- Line -->
 		<path
-			d={linePath()}
+			d={linePath}
 			fill="none"
 			stroke={color}
 			stroke-width={strokeWidth}
@@ -109,12 +109,12 @@
 
 		<!-- Dots -->
 		{#if showDots}
-			{#each points() as point, i}
+			{#each points as point, i}
 				<circle
 					cx={point.x}
 					cy={point.y}
 					r={strokeWidth + 1}
-					fill={i === points().length - 1 ? color : 'var(--em-surface)'}
+					fill={i === points.length - 1 ? color : 'var(--em-surface)'}
 					stroke={color}
 					stroke-width={1}
 					class="dot"
@@ -123,8 +123,8 @@
 		{/if}
 
 		<!-- End dot (always show last point) -->
-		{#if !showDots && points().length > 0}
-			{@const lastPoint = points()[points().length - 1]}
+		{#if !showDots && points.length > 0}
+			{@const lastPoint = points[points.length - 1]}
 			<circle
 				cx={lastPoint.x}
 				cy={lastPoint.y}

@@ -46,3 +46,14 @@ export { preferences, preferenceActions, initializeTheme } from './preferences';
 
 // App state
 export { appState, appActions, initializeStores, isReady, hasError } from './app';
+
+// Auth store and derived
+export {
+	authStore,
+	currentUser,
+	userId,
+	isAuthenticated,
+	authLoading,
+	authError,
+	authActions
+} from './auth';

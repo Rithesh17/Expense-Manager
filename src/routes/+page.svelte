@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { PageHeader, StatCard, EmptyState, QuickAddExpense, DonutChart, BarChart, SparkLine } from '$lib/components';
+	import { base } from '$app/paths';
+	import { PageHeader, StatCard, EmptyState, QuickAddExpense, DonutChart, BarChart, SparkLine, DemoPreview } from '$lib/components';
 	import { 
 		expenses, 
 		todayExpenses, 
@@ -9,7 +10,9 @@
 		weekStats,
 		monthStats,
 		categories,
-		overallBudgetProgress
+		overallBudgetProgress,
+		isAuthenticated,
+		authLoading
 	} from '$lib/stores';
 	import { 
 		formatCurrency, 
@@ -41,7 +44,10 @@
 			case 'week': return $weekExpenses;
 			case 'year': 
 				const yearStart = new Date(new Date().getFullYear(), 0, 1);
-				return $expenses.filter(e => new Date(e.date) >= yearStart);
+				return $expenses.filter(e => {
+					const expenseDate = typeof e.date === 'string' ? new Date(e.date) : (e.date instanceof Date ? e.date : new Date(e.date));
+					return expenseDate >= yearStart;
+				});
 			default: return $monthExpenses;
 		}
 	});
@@ -61,74 +67,82 @@
 	// Period-based bar chart data
 	let periodChartData = $derived(() => {
 		const now = new Date();
+		const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 		
 		switch (selectedPeriod) {
 			case 'week': {
-				// Show expenses by days of this week
+				// Show last 7 days expenses
 				const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-				const weekStart = startOfWeek();
 				const result: Array<{label: string, value: number}> = [];
 				
-				for (let i = 0; i < 7; i++) {
-					const date = new Date(weekStart);
-					date.setDate(date.getDate() + i);
+				for (let i = 6; i >= 0; i--) {
+					const date = new Date(today);
+					date.setDate(date.getDate() - i);
 					const dateStr = date.toISOString().split('T')[0];
 					
-					const dayExpenses = $expenses.filter(e => e.date.startsWith(dateStr));
+					const dayExpenses = $expenses.filter(e => {
+						const expenseDate = typeof e.date === 'string' ? e.date : (e.date instanceof Date ? e.date.toISOString().split('T')[0] : new Date(e.date).toISOString().split('T')[0]);
+						return expenseDate.startsWith(dateStr);
+					});
 					const total = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
 					
+					// Format label: "Mon 12" or "Today"
+					const dayName = days[date.getDay()];
+					const dayNum = date.getDate();
+					const isToday = dateStr === today.toISOString().split('T')[0];
+					const label = isToday ? 'Today' : `${dayName} ${dayNum}`;
+					
 					result.push({
-						label: days[date.getDay()],
+						label,
 						value: total
 					});
 				}
 				return result;
 			}
 			case 'year': {
-				// Show expenses by months of this year
+				// Show last 12 months expenses
 				const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 				const result: Array<{label: string, value: number}> = [];
 				
-				for (let i = 0; i <= now.getMonth(); i++) {
-					const monthStart = new Date(now.getFullYear(), i, 1);
-					const monthEnd = new Date(now.getFullYear(), i + 1, 0);
+				for (let i = 11; i >= 0; i--) {
+					const date = new Date(today);
+					date.setMonth(date.getMonth() - i);
+					const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+					const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
 					
 					const monthExpenses = filterByDateRange($expenses, monthStart, monthEnd);
 					const total = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
 					
 					result.push({
-						label: months[i],
+						label: months[date.getMonth()],
 						value: total
 					});
 				}
 				return result;
 			}
 			default: {
-				// Month: show expenses by weeks in this month
-				const monthStart = startOfMonth();
-				const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+				// Month: show last 5 weeks expenses
 				const result: Array<{label: string, value: number}> = [];
 				
-				let weekNum = 1;
-				let weekStart = new Date(monthStart);
-				
-				while (weekStart <= monthEnd) {
-					const weekEnd = new Date(weekStart);
-					weekEnd.setDate(weekEnd.getDate() + 6);
+				for (let i = 4; i >= 0; i--) {
+					const weekEnd = new Date(today);
+					weekEnd.setDate(weekEnd.getDate() - (i * 7));
+					const weekStart = new Date(weekEnd);
+					weekStart.setDate(weekStart.getDate() - 6);
 					
-					const actualEnd = weekEnd > monthEnd ? monthEnd : weekEnd;
-					
-					const weekExpenses = filterByDateRange($expenses, weekStart, actualEnd);
+					const weekExpenses = filterByDateRange($expenses, weekStart, weekEnd);
 					const total = weekExpenses.reduce((sum, e) => sum + e.amount, 0);
 					
+					// Format label: "Week of Jan 5" or "This Week"
+					const isCurrentWeek = i === 0;
+					const label = isCurrentWeek 
+						? 'This Week' 
+						: `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+					
 					result.push({
-						label: `Week ${weekNum}`,
+						label,
 						value: total
 					});
-					
-					weekStart = new Date(weekEnd);
-					weekStart.setDate(weekStart.getDate() + 1);
-					weekNum++;
 				}
 				return result;
 			}
@@ -138,9 +152,9 @@
 	// Chart title based on period
 	let chartTitle = $derived(() => {
 		switch (selectedPeriod) {
-			case 'week': return 'This Week by Day';
-			case 'year': return 'This Year by Month';
-			default: return 'This Month by Week';
+			case 'week': return 'Last 7 Days';
+			case 'year': return 'Last 12 Months';
+			default: return 'Last 5 Weeks';
 		}
 	});
 	
@@ -203,244 +217,268 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard | Expense Manager</title>
-	<meta name="description" content="Track your expenses and manage your budget with Expense Manager." />
+	<title>Dashboard | SpendWise</title>
+	<meta name="description" content="Track your expenses and manage your budget with SpendWise." />
 </svelte:head>
 
-<div class="dashboard">
-	<div class="container mx-auto px-4">
-		<PageHeader 
-			title="Dashboard" 
-			subtitle="Track your spending at a glance"
-		/>
+{#snippet dashboardContent()}
+	<div class="dashboard">
+		<div class="container mx-auto px-4">
+			<PageHeader 
+				title="Dashboard" 
+				subtitle="Track your spending at a glance"
+			/>
 
-		<!-- Period Selector -->
-		<div class="period-selector">
-			<button 
-				class="period-btn" 
-				class:active={selectedPeriod === 'week'}
-				onclick={() => selectedPeriod = 'week'}
-			>
-				Week
-			</button>
-			<button 
-				class="period-btn" 
-				class:active={selectedPeriod === 'month'}
-				onclick={() => selectedPeriod = 'month'}
-			>
-				Month
-			</button>
-			<button 
-				class="period-btn" 
-				class:active={selectedPeriod === 'year'}
-				onclick={() => selectedPeriod = 'year'}
-			>
-				Year
-			</button>
-		</div>
+			<!-- Period Selector -->
+			<div class="period-selector">
+				<button 
+					class="period-btn" 
+					class:active={selectedPeriod === 'week'}
+					onclick={() => selectedPeriod = 'week'}
+				>
+					Week
+				</button>
+				<button 
+					class="period-btn" 
+					class:active={selectedPeriod === 'month'}
+					onclick={() => selectedPeriod = 'month'}
+				>
+					Month
+				</button>
+				<button 
+					class="period-btn" 
+					class:active={selectedPeriod === 'year'}
+					onclick={() => selectedPeriod = 'year'}
+				>
+					Year
+				</button>
+			</div>
 
-		<!-- Stats Grid -->
-		<section class="stats-grid">
-			<StatCard 
-				title="Today" 
-				value={formatCurrency($todayStats.total, $preferences.currency)}
-				subtitle="{$todayStats.count} expense{$todayStats.count !== 1 ? 's' : ''}"
-				color="expense"
-			/>
-			<StatCard 
-				title={periodLabel()}
-				value={formatCurrency(periodTotal(), $preferences.currency)}
-				subtitle="{periodExpenses().length} expense{periodExpenses().length !== 1 ? 's' : ''}"
-			/>
-			<StatCard 
-				title="Average" 
-				value={formatCurrency(averageExpense(), $preferences.currency)}
-				subtitle="per expense"
-			/>
-			<StatCard 
-				title="Budget Used" 
-				value="{Math.round(budgetPercentageUsed())}%"
-				subtitle={formatCurrency(budgetRemaining(), $preferences.currency) + ' left'}
-				color={budgetStatus() === 'danger' ? 'expense' : budgetStatus() === 'warning' ? 'warning' : 'income'}
-			/>
-		</section>
+			<!-- Stats Grid -->
+			<section class="stats-grid">
+				<StatCard 
+					title="Today" 
+					value={formatCurrency($todayStats.total, $preferences.currency)}
+					subtitle="{$todayStats.count} expense{$todayStats.count !== 1 ? 's' : ''}"
+					color="expense"
+				/>
+				<StatCard 
+					title={periodLabel()}
+					value={formatCurrency(periodTotal(), $preferences.currency)}
+					subtitle="{periodExpenses().length} expense{periodExpenses().length !== 1 ? 's' : ''}"
+				/>
+				<StatCard 
+					title="Average" 
+					value={formatCurrency(averageExpense(), $preferences.currency)}
+					subtitle="per expense"
+				/>
+				<StatCard 
+					title="Budget Used" 
+					value="{Math.round(budgetPercentageUsed())}%"
+					subtitle={formatCurrency(budgetRemaining(), $preferences.currency) + ' left'}
+					color={budgetStatus() === 'danger' ? 'expense' : budgetStatus() === 'warning' ? 'warning' : 'income'}
+				/>
+			</section>
 
-		<!-- Charts Row -->
-		<section class="charts-row">
-			<!-- Category Breakdown -->
-			<div class="chart-card em-card">
-				<div class="section-header">
-					<h2 class="section-title">Spending by Category</h2>
+			<!-- Charts Row -->
+			<section class="charts-row">
+				<!-- Category Breakdown -->
+				<div class="chart-card em-card">
+					<div class="section-header">
+						<h2 class="section-title">Spending by Category</h2>
+					</div>
+					<div class="chart-content">
+						{#if donutData.length === 0}
+							<EmptyState
+								title="No data"
+								message="Add expenses to see breakdown"
+								icon="📊"
+							/>
+						{:else}
+							<DonutChart 
+								data={donutData}
+								size={180}
+								strokeWidth={35}
+								totalLabel={periodLabel()}
+								formatValue={(v: number) => formatCurrency(v, $preferences.currency)}
+							/>
+						{/if}
+					</div>
 				</div>
-				<div class="chart-content">
-					{#if donutData.length === 0}
+
+				<!-- Period-based Spending Chart -->
+				<div class="chart-card em-card">
+					<div class="section-header">
+						<h2 class="section-title">{chartTitle()}</h2>
+						<div class="trend-indicator">
+							<SparkLine 
+								data={spendingTrend}
+								width={80}
+								height={30}
+								color="var(--em-primary)"
+							/>
+						</div>
+					</div>
+					<div class="chart-content bar-chart-content">
+						<BarChart 
+							data={periodChartData()}
+							height={160}
+							barColor="var(--em-primary)"
+							formatValue={(v: number) => v > 0 ? formatCurrency(v, $preferences.currency) : ''}
+						/>
+					</div>
+				</div>
+			</section>
+
+			<!-- Quick Stats -->
+			<section class="quick-stats">
+				<div class="quick-stat em-card">
+					<div class="stat-icon">💰</div>
+					<div class="stat-info">
+						<span class="stat-label">Biggest Expense</span>
+						{#if biggestExpense}
+							<span class="stat-main">{formatCurrency(biggestExpense.amount, $preferences.currency)}</span>
+							<span class="stat-sub">{biggestExpense.description}</span>
+						{:else}
+							<span class="stat-main">—</span>
+						{/if}
+					</div>
+				</div>
+				<div class="quick-stat em-card">
+					<div class="stat-icon">{mostFrequentCategory?.icon || '📋'}</div>
+					<div class="stat-info">
+						<span class="stat-label">Top Category</span>
+						{#if mostFrequentCategory}
+							<span class="stat-main">{mostFrequentCategory.name}</span>
+							<span class="stat-sub">{categoryStats.find(c => c.categoryId === mostFrequentCategoryId)?.count || 0} expenses</span>
+						{:else}
+							<span class="stat-main">—</span>
+						{/if}
+					</div>
+				</div>
+				<div class="quick-stat em-card">
+					<div class="stat-icon">📈</div>
+					<div class="stat-info">
+						<span class="stat-label">Daily Average</span>
+						<span class="stat-main">
+							{formatCurrency(
+								getDailySpending($expenses, 7).reduce((sum, d) => sum + d.value, 0) / 7, 
+								$preferences.currency
+							)}
+						</span>
+						<span class="stat-sub">last 7 days</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- Main Content Grid -->
+			<div class="content-grid">
+				<!-- Recent Expenses -->
+				<section class="recent-expenses em-card">
+					<div class="section-header">
+						<h2 class="section-title">Recent Expenses</h2>
+						<a href={`${base}/expenses`} class="view-all">View All →</a>
+					</div>
+					
+					{#if recentExpenses.length === 0}
 						<EmptyState
-							title="No data"
-							message="Add expenses to see breakdown"
+							title="No expenses yet"
+							message="Start tracking by adding your first expense"
+							icon="💸"
+							actionLabel="Add Expense"
+							actionHref={`${base}/add`}
+						/>
+					{:else}
+						<div class="expense-list">
+							{#each recentExpenses as expense}
+								{@const category = getCategoryInfo(expense.categoryId)}
+								<a href={`${base}/expenses/${expense.id}`} class="expense-item">
+									<div class="expense-icon">{category.icon}</div>
+									<div class="expense-details">
+										<span class="expense-description">{expense.description}</span>
+										<span class="expense-meta">{category.name} • {formatRelativeDate(expense.date)}</span>
+									</div>
+									<div class="expense-amount amount-negative">
+										-{formatCurrency(expense.amount, $preferences.currency)}
+									</div>
+								</a>
+							{/each}
+						</div>
+					{/if}
+				</section>
+
+				<!-- Top Categories List -->
+				<section class="top-categories em-card">
+					<div class="section-header">
+						<h2 class="section-title">Top Categories</h2>
+						<a href={`${base}/categories`} class="view-all">Manage →</a>
+					</div>
+
+					{#if topCategories.length === 0}
+						<EmptyState
+							title="No spending data"
+							message="Add expenses to see category breakdown"
 							icon="📊"
 						/>
 					{:else}
-						<DonutChart 
-							data={donutData}
-							size={180}
-							strokeWidth={35}
-							totalLabel={periodLabel()}
-							formatValue={(v) => formatCurrency(v, $preferences.currency)}
-						/>
+						<div class="category-list">
+							{#each topCategories as category}
+								<div class="category-item">
+									<div class="category-info">
+										<span class="category-icon-small">{$categories.find(c => c.id === category.categoryId)?.icon || '📋'}</span>
+										<span class="category-name">{category.categoryName}</span>
+										<span class="category-amount">{formatCurrency(category.total, $preferences.currency)}</span>
+									</div>
+									<div class="category-bar">
+										<div 
+											class="category-progress" 
+											style="width: {category.percentage}%; background-color: {category.color};"
+										></div>
+									</div>
+								</div>
+							{/each}
+						</div>
 					{/if}
-				</div>
+				</section>
 			</div>
 
-			<!-- Period-based Spending Chart -->
-			<div class="chart-card em-card">
-				<div class="section-header">
-					<h2 class="section-title">{chartTitle()}</h2>
-					<div class="trend-indicator">
-						<SparkLine 
-							data={spendingTrend}
-							width={80}
-							height={30}
-							color="var(--em-primary)"
-						/>
-					</div>
-				</div>
-				<div class="chart-content bar-chart-content">
-					<BarChart 
-						data={periodChartData()}
-						height={160}
-						barColor="var(--em-primary)"
-						formatValue={(v) => v > 0 ? formatCurrency(v, $preferences.currency) : ''}
-					/>
-				</div>
-			</div>
-		</section>
-
-		<!-- Quick Stats -->
-		<section class="quick-stats">
-			<div class="quick-stat em-card">
-				<div class="stat-icon">💰</div>
-				<div class="stat-info">
-					<span class="stat-label">Biggest Expense</span>
-					{#if biggestExpense}
-						<span class="stat-main">{formatCurrency(biggestExpense.amount, $preferences.currency)}</span>
-						<span class="stat-sub">{biggestExpense.description}</span>
-					{:else}
-						<span class="stat-main">—</span>
-					{/if}
-				</div>
-			</div>
-			<div class="quick-stat em-card">
-				<div class="stat-icon">{mostFrequentCategory?.icon || '📋'}</div>
-				<div class="stat-info">
-					<span class="stat-label">Top Category</span>
-					{#if mostFrequentCategory}
-						<span class="stat-main">{mostFrequentCategory.name}</span>
-						<span class="stat-sub">{categoryStats.find(c => c.categoryId === mostFrequentCategoryId)?.count || 0} expenses</span>
-					{:else}
-						<span class="stat-main">—</span>
-					{/if}
-				</div>
-			</div>
-			<div class="quick-stat em-card">
-				<div class="stat-icon">📈</div>
-				<div class="stat-info">
-					<span class="stat-label">Daily Average</span>
-					<span class="stat-main">
-						{formatCurrency(
-							getDailySpending($expenses, 7).reduce((sum, d) => sum + d.value, 0) / 7, 
-							$preferences.currency
-						)}
-					</span>
-					<span class="stat-sub">last 7 days</span>
-				</div>
-			</div>
-		</section>
-
-		<!-- Main Content Grid -->
-		<div class="content-grid">
-			<!-- Recent Expenses -->
-			<section class="recent-expenses em-card">
-				<div class="section-header">
-					<h2 class="section-title">Recent Expenses</h2>
-					<a href="/expenses" class="view-all">View All →</a>
-				</div>
-				
-				{#if recentExpenses.length === 0}
-					<EmptyState
-						title="No expenses yet"
-						message="Start tracking by adding your first expense"
-						icon="💸"
-						actionLabel="Add Expense"
-						actionHref="/add"
-					/>
-				{:else}
-					<div class="expense-list">
-						{#each recentExpenses as expense}
-							{@const category = getCategoryInfo(expense.categoryId)}
-							<a href="/expenses/{expense.id}" class="expense-item">
-								<div class="expense-icon">{category.icon}</div>
-								<div class="expense-details">
-									<span class="expense-description">{expense.description}</span>
-									<span class="expense-meta">{category.name} • {formatRelativeDate(expense.date)}</span>
-								</div>
-								<div class="expense-amount amount-negative">
-									-{formatCurrency(expense.amount, $preferences.currency)}
-								</div>
-							</a>
-						{/each}
-					</div>
-				{/if}
-			</section>
-
-			<!-- Top Categories List -->
-			<section class="top-categories em-card">
-				<div class="section-header">
-					<h2 class="section-title">Top Categories</h2>
-					<a href="/categories" class="view-all">Manage →</a>
-				</div>
-
-				{#if topCategories.length === 0}
-					<EmptyState
-						title="No spending data"
-						message="Add expenses to see category breakdown"
-						icon="📊"
-					/>
-				{:else}
-					<div class="category-list">
-						{#each topCategories as category}
-							<div class="category-item">
-								<div class="category-info">
-									<span class="category-icon-small">{$categories.find(c => c.id === category.categoryId)?.icon || '📋'}</span>
-									<span class="category-name">{category.categoryName}</span>
-									<span class="category-amount">{formatCurrency(category.total, $preferences.currency)}</span>
-								</div>
-								<div class="category-bar">
-									<div 
-										class="category-progress" 
-										style="width: {category.percentage}%; background-color: {category.color};"
-									></div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</section>
+			<!-- Quick Add Button (Desktop) -->
+			{#if $isAuthenticated}
+				<button class="quick-add-fab" aria-label="Add new expense" onclick={() => showQuickAdd = true}>
+					<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="5" x2="12" y2="19"></line>
+						<line x1="5" y1="12" x2="19" y2="12"></line>
+					</svg>
+				</button>
+			{/if}
 		</div>
-
-		<!-- Quick Add Button (Desktop) -->
-		<button class="quick-add-fab" aria-label="Add new expense" onclick={() => showQuickAdd = true}>
-			<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-				<line x1="12" y1="5" x2="12" y2="19"></line>
-				<line x1="5" y1="12" x2="19" y2="12"></line>
-			</svg>
-		</button>
 	</div>
-</div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="dashboard">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Dashboard" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Dashboard"
+		description="Get a complete overview of your spending with real-time statistics, category breakdowns, and spending trends. Track your daily, weekly, and monthly expenses all in one place."
+	>
+		{#snippet previewContent()}
+			{@render dashboardContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render dashboardContent()}
+{/if}
 
 <!-- Quick Add Expense Modal -->
 <QuickAddExpense 
 	open={showQuickAdd} 
 	onclose={() => showQuickAdd = false}
+	onsuccess={() => showQuickAdd = false}
 />
 
 <style>

@@ -34,3 +34,6 @@ export { default as UserMenu } from './UserMenu.svelte';
 
 // App Footer
 export { default as AppFooter } from './AppFooter.svelte';
+
+// Demo Preview
+export { default as DemoPreview } from './DemoPreview.svelte';

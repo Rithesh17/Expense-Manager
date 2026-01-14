@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PageHeader, EmptyState, Modal } from '$lib/components';
+	import { base } from '$app/paths';
+	import { PageHeader, EmptyState, Modal, DemoPreview } from '$lib/components';
 	import { 
 		expenses,
 		expenseActions,
-		categories 
+		categories,
+		isAuthenticated,
+		authLoading
 	} from '$lib/stores';
 	import { preferences } from '$lib/stores/preferences';
 	import { 
@@ -162,11 +165,11 @@
 		return cat || { name: 'Unknown', icon: '📋', color: '#64748B' };
 	}
 
-	function handleDelete(id: string, e: Event) {
+	async function handleDelete(id: string, e: Event) {
 		e.preventDefault();
 		e.stopPropagation();
 		if (confirm('Are you sure you want to delete this expense?')) {
-			expenseActions.delete(id);
+			await expenseActions.delete(id);
 			selectedExpenseIds.delete(id);
 			selectedExpenseIds = new Set(selectedExpenseIds);
 		}
@@ -233,12 +236,12 @@
 		showBulkDeleteModal = false;
 	}
 	
-	function handleBulkCategoryChange() {
+	async function handleBulkCategoryChange() {
 		if (!bulkCategoryId) return;
 		
-		selectedExpenseIds.forEach(id => {
-			expenseActions.update(id, { categoryId: bulkCategoryId });
-		});
+		for (const id of selectedExpenseIds) {
+			await expenseActions.update(id, { categoryId: bulkCategoryId });
+		}
 		
 		selectedExpenseIds = new Set();
 		showBulkCategoryModal = false;
@@ -252,10 +255,11 @@
 </script>
 
 <svelte:head>
-	<title>Expenses | Expense Manager</title>
+	<title>Expenses | SpendWise</title>
 	<meta name="description" content="View and manage all your expenses." />
 </svelte:head>
 
+{#snippet expensesContent()}
 <div class="expenses-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
@@ -351,7 +355,7 @@
 					{/if}
 				</button>
 
-				<a href="/add" class="add-btn em-btn em-btn-primary">
+				<a href={`${base}/add`} class="add-btn em-btn em-btn-primary">
 					<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<line x1="12" y1="5" x2="12" y2="19"></line>
 						<line x1="5" y1="12" x2="19" y2="12"></line>
@@ -377,51 +381,59 @@
 					<div class="filter-row">
 						<!-- Date Range -->
 						<div class="filter-group">
-							<label class="filter-label">Date Range</label>
+							<label class="filter-label" for="date-from">Date Range</label>
 							<div class="date-range">
 								<input 
+									id="date-from"
 									type="date" 
 									class="em-input date-input"
 									bind:value={dateFrom}
 									onchange={() => quickFilter = 'all'}
 									max={dateTo || undefined}
+									aria-label="Date from"
 								/>
-								<span class="date-separator">to</span>
+								<span class="date-separator" aria-hidden="true">to</span>
 								<input 
+									id="date-to"
 									type="date" 
 									class="em-input date-input"
 									bind:value={dateTo}
 									onchange={() => quickFilter = 'all'}
 									min={dateFrom || undefined}
+									aria-label="Date to"
 								/>
 							</div>
 						</div>
 
 						<!-- Amount Range -->
 						<div class="filter-group">
-							<label class="filter-label">Amount Range</label>
+							<label class="filter-label" for="amount-min">Amount Range</label>
 							<div class="amount-range">
 								<div class="amount-input-wrapper">
-									<span class="currency-prefix">{$preferences.currency}</span>
+									<span class="currency-prefix" aria-hidden="true">{$preferences.currency}</span>
 									<input 
+										id="amount-min"
 										type="number" 
 										class="em-input amount-input"
 										placeholder="Min"
 										step="0.01"
 										min="0"
 										bind:value={amountMin}
+										aria-label="Minimum amount"
 									/>
 								</div>
-								<span class="range-separator">–</span>
+								<span class="range-separator" aria-hidden="true">–</span>
 								<div class="amount-input-wrapper">
-									<span class="currency-prefix">{$preferences.currency}</span>
+									<span class="currency-prefix" aria-hidden="true">{$preferences.currency}</span>
 									<input 
+										id="amount-max"
 										type="number" 
 										class="em-input amount-input"
 										placeholder="Max"
 										step="0.01"
 										min="0"
 										bind:value={amountMax}
+										aria-label="Maximum amount"
 									/>
 								</div>
 							</div>
@@ -429,8 +441,8 @@
 
 						<!-- Sort -->
 						<div class="filter-group">
-							<label class="filter-label">Sort By</label>
-							<select class="em-input filter-select" bind:value={sortBy}>
+							<label class="filter-label" for="sort-by">Sort By</label>
+							<select id="sort-by" class="em-input filter-select" bind:value={sortBy}>
 								<option value="date-desc">Newest First</option>
 								<option value="date-asc">Oldest First</option>
 								<option value="amount-desc">Highest Amount</option>
@@ -440,25 +452,26 @@
 					</div>
 
 					<!-- Payment Methods -->
-					<div class="filter-group">
-						<label class="filter-label">Payment Method</label>
+					<fieldset class="filter-group">
+						<legend class="filter-label">Payment Method</legend>
 						<div class="payment-chips">
 							{#each paymentMethods as method}
 								<button 
 									class="payment-chip"
 									class:selected={selectedPaymentMethods.includes(method.value)}
 									onclick={() => togglePaymentMethod(method.value)}
+									aria-pressed={selectedPaymentMethods.includes(method.value)}
 								>
-									<span class="chip-icon">{method.icon}</span>
+									<span class="chip-icon" aria-hidden="true">{method.icon}</span>
 									<span class="chip-name">{method.label}</span>
 								</button>
 							{/each}
 						</div>
-					</div>
+					</fieldset>
 
 					<!-- Categories -->
-					<div class="filter-group">
-						<label class="filter-label">Categories</label>
+					<fieldset class="filter-group">
+						<legend class="filter-label">Categories</legend>
 						<div class="category-chips">
 							{#each $categories as cat}
 								<button 
@@ -466,8 +479,9 @@
 									class:selected={selectedCategoryFilters.includes(cat.id)}
 									onclick={() => toggleCategoryFilter(cat.id)}
 									style="--chip-color: {cat.color}"
+									aria-pressed={selectedCategoryFilters.includes(cat.id)}
 								>
-									<span class="chip-icon">{cat.icon}</span>
+									<span class="chip-icon" aria-hidden="true">{cat.icon}</span>
 									<span class="chip-name">{cat.name}</span>
 									{#if selectedCategoryFilters.includes(cat.id)}
 										<svg class="chip-check" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -477,7 +491,7 @@
 								</button>
 							{/each}
 						</div>
-					</div>
+					</fieldset>
 				</div>
 			</div>
 		{/if}
@@ -544,7 +558,7 @@
 					message={hasActiveFilters ? "Try adjusting your filters" : "Add your first expense to get started"}
 					icon="🔍"
 					actionLabel="Add Expense"
-					actionHref="/add"
+					actionHref={`${base}/add`}
 				/>
 			{:else}
 				<div class="list-header">
@@ -567,15 +581,25 @@
 				{#each filteredExpenses() as expense}
 					{@const category = getCategoryInfo(expense.categoryId)}
 					{@const isSelected = selectedExpenseIds.has(expense.id)}
-					<a href="/expenses/{expense.id}" class="list-row" class:selected={isSelected}>
-						<div class="cell checkbox" onclick={(e) => toggleSelection(expense.id, e)}>
-							<input 
-								type="checkbox" 
-								class="row-checkbox"
-								checked={isSelected}
-								onclick={(e) => e.stopPropagation()}
-								onchange={(e) => toggleSelection(expense.id, e)}
-							/>
+					<a 
+						href={`${base}/expenses/${expense.id}`} 
+						class="list-row" 
+						class:selected={isSelected}
+						data-sveltekit-preload-data="off"
+						data-sveltekit-noscroll
+					>
+						<div class="cell checkbox">
+							<label class="checkbox-label">
+								<input 
+									type="checkbox" 
+									class="row-checkbox"
+									checked={isSelected}
+									onclick={(e) => e.stopPropagation()}
+									onchange={(e) => toggleSelection(expense.id, e)}
+									aria-label={`Select expense: ${expense.description}`}
+								/>
+								<span class="sr-only">Select expense</span>
+							</label>
 						</div>
 						<div class="cell description">
 							<span class="expense-icon">{category.icon}</span>
@@ -597,7 +621,15 @@
 							<button 
 								class="action-btn edit" 
 								aria-label="Edit expense" 
-								onclick={(e) => { e.preventDefault(); goto(`/expenses/${expense.id}?edit=true`); }}
+								onclick={(e) => { 
+									e.preventDefault(); 
+									e.stopPropagation();
+									// Use window.location for more reliable navigation on static sites
+									// This avoids SvelteKit's __data.json fetch issues
+									setTimeout(() => {
+										window.location.href = `${base}/expenses/${expense.id}?edit=true`;
+									}, 0);
+								}}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 									<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -621,6 +653,26 @@
 		</div>
 	</div>
 </div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="expenses-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Expenses" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Expenses"
+		description="View, search, and manage your expenses. Filter by category, date, payment method, and more. Track your spending easily."
+	>
+		{#snippet previewContent()}
+			{@render expensesContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render expensesContent()}
+{/if}
 
 <!-- Bulk Delete Modal -->
 {#snippet bulkDeleteContent()}
@@ -910,14 +962,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		border: none;
+		padding: 0;
+		margin: 0;
 	}
 
+	.filter-group legend,
 	.filter-label {
 		font-size: 0.75rem;
 		font-weight: 600;
 		color: var(--em-text-muted);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+		margin-bottom: 0.5rem;
+		padding: 0;
 	}
 
 	.filter-select {
@@ -1201,11 +1259,30 @@
 		justify-content: center;
 	}
 
+	.checkbox-label {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+	}
+
 	.row-checkbox {
 		width: 18px;
 		height: 18px;
 		cursor: pointer;
 		accent-color: var(--em-primary);
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
 	}
 
 	.cell.description {

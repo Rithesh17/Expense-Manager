@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PageHeader } from '$lib/components';
-	import { expenseActions, categories } from '$lib/stores';
+	import { base } from '$app/paths';
+	import { PageHeader, DemoPreview } from '$lib/components';
+	import { expenseActions, categories, isAuthenticated, authLoading } from '$lib/stores';
 	import type { PaymentMethod, ExpenseFormData } from '$lib/types';
 
 	// Form state
@@ -28,7 +29,7 @@
 	// Get selected category info for display
 	let selectedCategory = $derived($categories.find(c => c.id === categoryId));
 
-	function handleSubmit(e: Event) {
+	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		error = '';
 		
@@ -62,10 +63,10 @@
 				tags: tags.trim() || undefined
 			};
 			
-			expenseActions.add(formData);
+			await expenseActions.add(formData);
 			
 			// Navigate to expenses page
-			goto('/expenses');
+			goto(`${base}/expenses`);
 		} catch (err) {
 			error = 'Failed to save expense. Please try again.';
 			console.error(err);
@@ -88,10 +89,11 @@
 </script>
 
 <svelte:head>
-	<title>Add Expense | Expense Manager</title>
+	<title>Add Expense | SpendWise</title>
 	<meta name="description" content="Add a new expense to track your spending." />
 </svelte:head>
 
+{#snippet addExpenseContent()}
 <div class="add-expense-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
@@ -241,8 +243,8 @@
 
 					<!-- Receipt Upload Placeholder -->
 					<div class="form-group">
-						<label class="em-label">Receipt</label>
-						<div class="receipt-upload-placeholder">
+						<label class="em-label" for="receipt-upload">Receipt</label>
+						<div id="receipt-upload" class="receipt-upload-placeholder" role="img" aria-label="Receipt upload placeholder">
 							<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
 								<rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
 								<circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -260,7 +262,7 @@
 				<button type="button" class="em-btn em-btn-ghost" onclick={handleReset}>
 					Clear
 				</button>
-				<a href="/" class="em-btn em-btn-ghost cancel-link">Cancel</a>
+				<a href={`${base}/`} class="em-btn em-btn-ghost cancel-link">Cancel</a>
 				<button type="submit" class="em-btn em-btn-primary" disabled={isSubmitting}>
 					{#if isSubmitting}
 						<span class="spinner"></span>
@@ -276,6 +278,31 @@
 		</form>
 	</div>
 </div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="add-expense-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Add Expense" subtitle="Loading..." />
+		</div>
+	</div>
+	<div class="add-expense-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Add Expense" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Add Expense"
+		description="Quickly record your expenses with detailed information. Add amount, description, category, date, payment method, merchant, notes, and tags. Keep track of every dollar you spend."
+	>
+		{#snippet previewContent()}
+			{@render addExpenseContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render addExpenseContent()}
+{/if}
 
 <style>
 	.add-expense-page {

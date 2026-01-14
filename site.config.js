@@ -1,19 +1,19 @@
 // Site Configuration
-// Expense Manager - Personal Expense Tracking Application
+// SpendWise - Personal Expense Tracking Application
 
 export const siteConfig = {
   // Site general information
   site: {
-    name: "Expense Manager",
+    name: "SpendWise",
     description: "Track your expenses, manage budgets, and gain insights into your spending habits",
-    url: "https://expense-manager.github.io",
-    author: "Expense Manager Team"
+    url: "https://spendwise.github.io",
+    author: "SpendWise Team"
   },
 
   // Navigation bar configuration
   navbar: {
     // Site title displayed in the navbar
-    siteTitle: "💰 Expense Manager",
+    siteTitle: "💰 SpendWise",
 
     // Logo image URL (null or false for no logo)
     logo: null,
@@ -71,8 +71,8 @@ export const siteConfig = {
 
   // SEO and meta information
   seo: {
-    defaultTitle: "Expense Manager - Track Your Spending",
-    titleTemplate: "%s | Expense Manager",
+    defaultTitle: "SpendWise - Track Your Spending",
+    titleTemplate: "%s | SpendWise",
     defaultDescription: "Free personal expense tracker. Manage budgets, categorize spending, and visualize your financial habits.",
     keywords: ["expense tracker", "budget manager", "personal finance", "spending tracker", "money management"],
     ogImage: "/images/og-image.png",

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { PageHeader, EmptyState, Modal, EmojiPicker, ColorPicker } from '$lib/components';
-	import { categories, categoryActions, expenses, expenseActions, monthExpenses } from '$lib/stores';
+	import { PageHeader, EmptyState, Modal, EmojiPicker, ColorPicker, DemoPreview } from '$lib/components';
+	import { categories, categoryActions, expenses, expenseActions, monthExpenses, userId, isAuthenticated, authLoading } from '$lib/stores';
 	import { preferences } from '$lib/stores/preferences';
 	import { formatCurrency, calculateTotal } from '$lib/utils';
 	import type { Category, BudgetPeriod } from '$lib/types';
@@ -67,7 +67,7 @@
 		showAddModal = true;
 	}
 
-	function handleAddCategory() {
+	async function handleAddCategory() {
 		addError = '';
 
 		if (!addName.trim()) {
@@ -81,8 +81,8 @@
 			return;
 		}
 
-		categoryActions.add({
-			userId: 'local',
+		await categoryActions.add({
+			userId: $userId || null,
 			name: addName.trim(),
 			icon: addIcon,
 			color: addColor,
@@ -105,7 +105,7 @@
 		showEditModal = true;
 	}
 
-	function handleEditCategory() {
+	async function handleEditCategory() {
 		if (!editingCategory) return;
 		editError = '';
 
@@ -120,7 +120,7 @@
 			return;
 		}
 
-		categoryActions.update(editingCategory.id, {
+		await categoryActions.update(editingCategory.id, {
 			name: editName.trim(),
 			icon: editIcon,
 			color: editColor,
@@ -145,7 +145,7 @@
 		showDeleteModal = true;
 	}
 
-	function handleDeleteCategory() {
+	async function handleDeleteCategory() {
 		if (!deletingCategory) return;
 
 		const categoryExpenses = $expenses.filter(e => e.categoryId === deletingCategory!.id);
@@ -154,19 +154,19 @@
 			if (deleteExpenses) {
 				// Delete all expenses in this category
 				const expenseIds = categoryExpenses.map(e => e.id);
-				expenseActions.deleteMany(expenseIds);
+				await expenseActions.deleteMany(expenseIds);
 			} else if (reassignCategoryId) {
 				// Reassign expenses to another category
-				categoryExpenses.forEach(expense => {
-					expenseActions.update(expense.id, { categoryId: reassignCategoryId });
-				});
+				for (const expense of categoryExpenses) {
+					await expenseActions.update(expense.id, { categoryId: reassignCategoryId });
+				}
 			} else {
 				// No action specified - can't delete
 				return;
 			}
 		}
 
-		categoryActions.delete(deletingCategory.id);
+		await categoryActions.delete(deletingCategory.id);
 		showDeleteModal = false;
 		deletingCategory = null;
 	}
@@ -193,10 +193,11 @@
 </script>
 
 <svelte:head>
-	<title>Categories | Expense Manager</title>
+	<title>Categories | SpendWise</title>
 	<meta name="description" content="Manage your expense categories." />
 </svelte:head>
 
+{#snippet categoriesContent()}
 <div class="categories-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
@@ -308,6 +309,31 @@
 		{/if}
 	</div>
 </div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="categories-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Categories" subtitle="Loading..." />
+		</div>
+	</div>
+	<div class="categories-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Categories" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Categories"
+		description="Organize your expenses with custom categories. Create categories with custom icons and colors, set budgets, and track spending by category. Get insights into where your money goes."
+	>
+		{#snippet previewContent()}
+			{@render categoriesContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render categoriesContent()}
+{/if}
 
 <!-- Add Category Modal -->
 {#snippet addModalContent()}
@@ -336,15 +362,15 @@
 		</div>
 
 		<div class="form-row">
-			<div class="form-group icon-group">
-				<label class="em-label">Icon</label>
+			<fieldset class="form-group icon-group">
+				<legend class="em-label">Icon</legend>
 				<EmojiPicker value={addIcon} onselect={(emoji) => addIcon = emoji} />
-			</div>
+			</fieldset>
 
-			<div class="form-group color-group">
-				<label class="em-label">Color</label>
+			<fieldset class="form-group color-group">
+				<legend class="em-label">Color</legend>
 				<ColorPicker value={addColor} onselect={(color) => addColor = color} />
-			</div>
+			</fieldset>
 		</div>
 
 		<div class="form-group">
@@ -410,15 +436,15 @@
 		</div>
 
 		<div class="form-row">
-			<div class="form-group icon-group">
-				<label class="em-label">Icon</label>
+			<fieldset class="form-group icon-group">
+				<legend class="em-label">Icon</legend>
 				<EmojiPicker value={editIcon} onselect={(emoji) => editIcon = emoji} />
-			</div>
+			</fieldset>
 
-			<div class="form-group color-group">
-				<label class="em-label">Color</label>
+			<fieldset class="form-group color-group">
+				<legend class="em-label">Color</legend>
 				<ColorPicker value={editColor} onselect={(color) => editColor = color} />
-			</div>
+			</fieldset>
 		</div>
 
 		<div class="form-group">
@@ -761,6 +787,25 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.form-group fieldset,
+	fieldset.form-group {
+		border: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.form-group legend,
+	fieldset.form-group legend {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--em-text-secondary);
+		margin-bottom: 0.5rem;
+		padding: 0;
 	}
 
 	.form-row {

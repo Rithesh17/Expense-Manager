@@ -18,6 +18,7 @@ import {
   parseTags
 } from '$lib/utils';
 import { browser } from '$app/environment';
+import { userId } from './auth';
 
 // ============================================
 // Store Creation
@@ -53,11 +54,12 @@ function createExpensesStore() {
     /**
      * Add a new expense
      */
-    add: (formData: ExpenseFormData, userId: string = 'local'): Expense => {
+    add: async (formData: ExpenseFormData, expenseUserId?: string): Promise<Expense> => {
+      const currentUserId = expenseUserId || get(userId) || 'local';
       const now = getCurrentTimestamp();
       const expense: Expense = {
         id: generateId('exp'),
-        userId,
+        userId: currentUserId,
         amount: parseFloat(formData.amount) || 0,
         description: formData.description.trim(),
         categoryId: formData.categoryId,
@@ -71,34 +73,60 @@ function createExpensesStore() {
       };
       
       update(expenses => [expense, ...expenses]);
+      
+      // Sync to Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (currentUserId !== 'local') {
+        import('$lib/firebase/sync').then(({ syncExpenseToFirestore }) => {
+          syncExpenseToFirestore(expense).catch(err => {
+            console.error('Failed to sync expense to Firestore:', err);
+          });
+        });
+      }
+      
       return expense;
     },
     
     /**
      * Update an existing expense
      */
-    updateExpense: (id: string, updates: Partial<Expense>): boolean => {
+    updateExpense: async (id: string, updates: Partial<Expense>): Promise<boolean> => {
       let found = false;
+      let updatedExpense: Expense | null = null;
+      
       update(expenses => {
         return expenses.map(exp => {
           if (exp.id === id) {
             found = true;
-            return { 
+            updatedExpense = { 
               ...exp, 
               ...updates, 
               updatedAt: getCurrentTimestamp() 
             };
+            return updatedExpense;
           }
           return exp;
         });
       });
+      
+      // Sync to Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (found && updatedExpense && updatedExpense.userId !== 'local') {
+        import('$lib/firebase/sync').then(({ syncExpenseToFirestore }) => {
+          syncExpenseToFirestore(updatedExpense!).catch(err => {
+            console.error('Failed to sync expense update to Firestore:', err);
+          });
+        });
+      }
+      
       return found;
     },
     
     /**
      * Delete an expense
      */
-    delete: (id: string): boolean => {
+    delete: async (id: string): Promise<boolean> => {
+      const expense = get({ subscribe }).find(exp => exp.id === id);
+      const expenseUserId = expense?.userId;
+      
       let found = false;
       update(expenses => {
         const filtered = expenses.filter(exp => {
@@ -110,13 +138,26 @@ function createExpensesStore() {
         });
         return filtered;
       });
+      
+      // Delete from Firestore if authenticated (using dynamic import to avoid circular dependency)
+      if (found && expenseUserId && expenseUserId !== 'local') {
+        import('$lib/firebase/sync').then(({ deleteExpenseFromFirestore }) => {
+          deleteExpenseFromFirestore(id).catch(err => {
+            console.error('Failed to delete expense from Firestore:', err);
+          });
+        });
+      }
+      
       return found;
     },
     
     /**
      * Delete multiple expenses
      */
-    deleteMany: (ids: string[]): number => {
+    deleteMany: async (ids: string[]): Promise<number> => {
+      const currentExpenses = get({ subscribe });
+      const expensesToDelete = currentExpenses.filter(exp => ids.includes(exp.id));
+      
       const idSet = new Set(ids);
       let count = 0;
       update(expenses => {
@@ -128,6 +169,21 @@ function createExpensesStore() {
           return true;
         });
       });
+      
+      // Delete from Firestore if authenticated (using dynamic import to avoid circular dependency)
+      const currentUserId = get(userId);
+      if (currentUserId) {
+        import('$lib/firebase/sync').then(({ deleteExpenseFromFirestore }) => {
+          expensesToDelete.forEach(expense => {
+            if (expense.userId !== 'local') {
+              deleteExpenseFromFirestore(expense.id).catch(err => {
+                console.error('Failed to delete expense from Firestore:', err);
+              });
+            }
+          });
+        });
+      }
+      
       return count;
     },
     

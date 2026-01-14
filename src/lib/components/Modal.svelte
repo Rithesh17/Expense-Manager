@@ -37,14 +37,30 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if open}
-  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-  <div class="modal-backdrop" onclick={handleBackdropClick}>
+  <div 
+    class="modal-backdrop" 
+    onclick={handleBackdropClick}
+    role="button"
+    tabindex="0"
+    onkeydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleBackdropClick();
+      }
+    }}
+    aria-label="Close modal"
+  >
     <div 
       class="modal modal-{size}" 
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => {
+        // Prevent keyboard events from bubbling, but don't handle them
+        e.stopPropagation();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
+      tabindex="-1"
     >
       {#if title || closable}
         <div class="modal-header">

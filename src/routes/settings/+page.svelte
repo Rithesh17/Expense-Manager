@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { PageHeader } from '$lib/components';
 	import { preferences, preferenceActions } from '$lib/stores/preferences';
 	import { expenses, categories, budgets } from '$lib/stores';
@@ -332,7 +333,7 @@
 						</svg>
 						GitHub
 					</a>
-					<a href="/about" class="about-link">About</a>
+					<a href={`${base}/about`} class="about-link">About</a>
 				</div>
 			</section>
 		</div>

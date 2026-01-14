@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { base } from '$app/paths';
   const currentYear = new Date().getFullYear();
 </script>
 
@@ -7,17 +8,17 @@
     <div class="footer-content">
       <div class="footer-brand">
         <span class="brand-icon">💰</span>
-        <span class="brand-name">Expense Manager</span>
+        <span class="brand-name">SpendWise</span>
       </div>
       
       <nav class="footer-nav">
-        <a href="/about">About</a>
-        <a href="/settings">Settings</a>
+        <a href={`${base}/about`}>About</a>
+        <a href={`${base}/profile`}>Profile</a>
       </nav>
     </div>
     
     <div class="footer-bottom">
-      <p class="copyright">© {currentYear} Expense Manager. All rights reserved.</p>
+      <p class="copyright">© {currentYear} SpendWise. All rights reserved.</p>
       <p class="version">v1.0.0 • Phase 2</p>
     </div>
   </div>

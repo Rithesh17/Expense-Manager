@@ -58,7 +58,15 @@
 	let allColors = $derived(colorGroups.flatMap(g => g.colors.slice(0, 2)));
 
 	let showCustomInput = $state(false);
+	
+	// Initialize customColor - sync with value prop via effect
+	// svelte-ignore state_referenced_locally
 	let customColor = $state(value);
+	
+	// Sync customColor when value prop changes (this handles the reactive update)
+	$effect(() => {
+		customColor = value;
+	});
 
 	function handleSelect(color: string) {
 		onselect?.(color);

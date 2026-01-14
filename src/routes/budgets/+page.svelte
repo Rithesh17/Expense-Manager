@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PageHeader, EmptyState, Modal } from '$lib/components';
+	import { PageHeader, EmptyState, Modal, DemoPreview } from '$lib/components';
 	import { 
 		budgets, 
 		budgetActions, 
@@ -12,6 +12,7 @@
 	} from '$lib/stores/budgets';
 	import { categories } from '$lib/stores/categories';
 	import { preferences } from '$lib/stores/preferences';
+	import { isAuthenticated, authLoading } from '$lib/stores';
 	import { formatCurrency } from '$lib/utils';
 	import type { Budget, BudgetPeriod } from '$lib/types';
 
@@ -99,7 +100,7 @@
 	}
 
 	// Handle add budget
-	function handleAddBudget() {
+	async function handleAddBudget() {
 		const amount = parseFloat(formAmount);
 		if (isNaN(amount) || amount <= 0) {
 			formError = 'Please enter a valid amount';
@@ -111,7 +112,7 @@
 			return;
 		}
 
-		budgetActions.add({
+		await budgetActions.add({
 			categoryId: formCategoryId,
 			amount,
 			period: formPeriod
@@ -122,7 +123,7 @@
 	}
 
 	// Handle edit budget
-	function handleEditBudget() {
+	async function handleEditBudget() {
 		if (!editingBudget) return;
 
 		const amount = parseFloat(formAmount);
@@ -131,7 +132,7 @@
 			return;
 		}
 
-		budgetActions.update(editingBudget.id, {
+		await budgetActions.update(editingBudget.id, {
 			amount,
 			period: formPeriod
 		});
@@ -141,27 +142,27 @@
 	}
 
 	// Handle delete budget
-	function handleDeleteBudget() {
+	async function handleDeleteBudget() {
 		if (!deletingBudget) return;
-		budgetActions.delete(deletingBudget.id);
+		await budgetActions.delete(deletingBudget.id);
 		showDeleteModal = false;
 		deletingBudget = null;
 	}
 
 	// Handle overall budget save
-	function handleSaveOverallBudget() {
+	async function handleSaveOverallBudget() {
 		const amount = parseFloat(overallAmount);
 		if (isNaN(amount) || amount <= 0) {
 			return;
 		}
 
 		if ($overallBudget) {
-			budgetActions.update($overallBudget.id, {
+			await budgetActions.update($overallBudget.id, {
 				amount,
 				period: overallPeriod
 			});
 		} else {
-			budgetActions.add({
+			await budgetActions.add({
 				categoryId: null,
 				amount,
 				period: overallPeriod
@@ -172,9 +173,9 @@
 	}
 
 	// Handle delete overall budget
-	function handleDeleteOverallBudget() {
+	async function handleDeleteOverallBudget() {
 		if ($overallBudget) {
-			budgetActions.delete($overallBudget.id);
+			await budgetActions.delete($overallBudget.id);
 		}
 		showOverallModal = false;
 	}
@@ -189,10 +190,11 @@
 </script>
 
 <svelte:head>
-	<title>Budgets | Expense Manager</title>
+	<title>Budgets | SpendWise</title>
 	<meta name="description" content="Set and track your spending budgets." />
 </svelte:head>
 
+{#snippet budgetsContent()}
 <div class="budgets-page">
 	<div class="container mx-auto px-4">
 		<PageHeader 
@@ -388,6 +390,26 @@
 		</section>
 	</div>
 </div>
+{/snippet}
+
+{#if $authLoading}
+	<div class="budgets-page">
+		<div class="container mx-auto px-4">
+			<PageHeader title="Budgets" subtitle="Loading..." />
+		</div>
+	</div>
+{:else if !$isAuthenticated}
+	<DemoPreview
+		title="Budgets"
+		description="Set spending limits and track your progress. Create budgets for overall spending or specific categories. Get alerts when you're approaching or exceeding your limits. Stay in control of your finances."
+	>
+		{#snippet previewContent()}
+			{@render budgetsContent()}
+		{/snippet}
+	</DemoPreview>
+{:else}
+	{@render budgetsContent()}
+{/if}
 
 <!-- Add Budget Modal -->
 {#snippet addModalContent()}

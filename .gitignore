@@ -21,3 +21,8 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+
+There's an issue with the code here: 1. If I add a new category, it's not persisting. It still says no categories (after logging in) even though I added one. I do see the category for a split second when I   │
+ │   refresh the page, but it quickly switches to no categories. Also when I check the firestore, there's no data. In fact, there's no collection or db there at all. 2. Profile page is bugged. I can navigate to   │
+ │   the page though the navbar, but when I refresh the page it gives 404 

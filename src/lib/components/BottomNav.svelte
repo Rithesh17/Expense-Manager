@@ -1,27 +1,28 @@
 <script>
   import { page } from '$app/stores';
+  import { base } from '$app/paths';
   
   const navItems = [
     { title: 'Dashboard', url: '/', icon: 'home' },
     { title: 'Expenses', url: '/expenses', icon: 'list' },
     { title: 'Add', url: '/add', icon: 'plus' },
     { title: 'Reports', url: '/reports', icon: 'chart' },
-    { title: 'Settings', url: '/settings', icon: 'settings' }
+    { title: 'Profile', url: '/profile', icon: 'settings' }
   ];
   
   let currentPath = $derived($page.url.pathname);
   
   /** @param {string} url */
   function isActive(url) {
-    if (url === '/') return currentPath === '/';
-    return currentPath.startsWith(url);
+    if (url === '/') return currentPath === base + '/' || currentPath === base;
+    return currentPath.startsWith(base + url);
   }
 </script>
 
 <nav class="bottom-nav">
   {#each navItems as item}
     <a 
-      href={item.url} 
+      href={`${base}${item.url}`} 
       class="nav-item" 
       class:active={isActive(item.url)}
       aria-label={item.title}
